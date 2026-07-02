@@ -25,6 +25,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Park: '#84cc16',
   Religious: '#ef4444',
   Transport: '#6b7280',
+  Bank: '#1e40af',
 };
 
 const CATEGORY_ZH: Record<string, string> = {
@@ -37,10 +38,11 @@ const CATEGORY_ZH: Record<string, string> = {
   Park: '公園綠地',
   Religious: '宗教景點',
   Transport: '交通',
+  Bank: '銀行',
 };
 
 const ALL_DAYS = ['7/8', '7/9', '7/10', '7/11', '7/12', '7/13', '7/14'];
-const ALL_CATEGORIES = ['Landmark', 'Food', 'Mall', 'Cultural', 'Hotel', 'Wellness', 'Park', 'Religious', 'Transport'];
+const ALL_CATEGORIES = ['Landmark', 'Food', 'Mall', 'Cultural', 'Hotel', 'Wellness', 'Park', 'Religious', 'Transport', 'Bank'];
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1wM-brW_yG22bcphlBbvHyad98Br7YNVdPgkiXsLkV-c/export?format=csv';
 
@@ -49,7 +51,7 @@ function dayLabelToDate(label: string): string | null {
   const l = label.toLowerCase();
   if (/金門住宿|金門抵達/.test(l)) return '7/8';
   if (/小三通|抵達廈門/.test(l)) return '7/9';
-  if (/輕鬆逛街/.test(l)) return '7/10';
+  if (/輕鬆逛街|銀行辦事/.test(l)) return '7/10';
   if (/廈門經典/.test(l)) return '7/11';
   if (/海邊放鬆/.test(l)) return '7/12';
   if (/採購按摩/.test(l)) return '7/13';
@@ -153,7 +155,6 @@ export default function MapView() {
           return;
         }
       }
-      // Fallback: fetch CSV directly
       const csvResp = await fetch(CSV_URL);
       if (!csvResp.ok) throw new Error(`HTTP ${csvResp.status}`);
       const csvText = await csvResp.text();
@@ -167,7 +168,6 @@ export default function MapView() {
 
   useEffect(() => { loadSpots(); }, [loadSpots]);
 
-  // Sync sheets
   const handleSync = async () => {
     setSyncing(true);
     setSyncMsg('同步中...');
@@ -187,7 +187,6 @@ export default function MapView() {
     setTimeout(() => setSyncMsg(''), 5000);
   };
 
-  // Filtered spots
   const filteredSpots = useMemo(() => {
     return spots.filter(s => {
       if (selectedDay) {
@@ -199,7 +198,6 @@ export default function MapView() {
     });
   }, [spots, selectedDay, selectedCategory]);
 
-  // Init map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
     const map = L.map(mapContainerRef.current, {
@@ -213,19 +211,15 @@ export default function MapView() {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
     mapRef.current = map;
-
-    // Invalidate size when tab becomes visible (for mobile)
     setTimeout(() => map.invalidateSize(), 200);
     return () => { map.remove(); mapRef.current = null; };
   }, []);
 
-  // Update markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map || loading) return;
     markersRef.current.forEach(m => map.removeLayer(m));
     markersRef.current = [];
-
     if (filteredSpots.length === 0) return;
     const bounds = L.latLngBounds([] as L.LatLng[]);
 
@@ -243,7 +237,6 @@ export default function MapView() {
         fillOpacity: 0.85,
       });
 
-      // Star icon for manual spots via divIcon overlay
       if (isManual) {
         const starIcon = L.divIcon({
           className: '',
@@ -263,7 +256,6 @@ export default function MapView() {
       if (spot.price) popupContent += `<br><span style="font-size:10px;color:#666;">💰 ${escHtml(spot.price)}</span>`;
       if (spot.tips) popupContent += `<br><span style="font-size:10px;color:#2c6e91;">💡 ${escHtml(spot.tips)}</span>`;
       if (spot.warning) popupContent += `<br><span style="font-size:10px;color:#e8833a;">⚠️ ${escHtml(spot.warning)}</span>`;
-      // Nav buttons
       popupContent += `<br><div style="display:flex;gap:4px;margin-top:6px;">`;
       popupContent += `<a href="https://uri.amap.com/search?keyword=${encodeURIComponent(spot.name)}" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;background:#2c6e91;color:#fff;border-radius:999px;font-size:10px;text-decoration:none;">🗺️ 高德</a>`;
       popupContent += `<a href="https://maps.google.com/?q=${spot.lat},${spot.lng}" target="_blank" rel="noopener" style="display:inline-block;padding:4px 10px;background:#c9a96e;color:#fff;border-radius:999px;font-size:10px;text-decoration:none;">📍 Google</a>`;
@@ -280,14 +272,12 @@ export default function MapView() {
     map.invalidateSize();
   }, [filteredSpots, loading]);
 
-  // Resize handler
   useEffect(() => {
     const handleResize = () => mapRef.current?.invalidateSize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Geolocate
   const useCurrentLocation = () => {
     if (!navigator.geolocation) { setFormMsg('瀏覽器不支援定位'); return; }
     navigator.geolocation.getCurrentPosition(
@@ -330,7 +320,6 @@ export default function MapView() {
     setFormSubmitting(false);
   };
 
-  // Export CSV
   const handleExport = useCallback(() => {
     const csv = filteredSpots.length > 0 ? generateCSV(filteredSpots) : generateCSV(spots);
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -342,7 +331,6 @@ export default function MapView() {
     URL.revokeObjectURL(url);
   }, [filteredSpots, spots]);
 
-  // Generate day summary for selected day
   const daySummary = useMemo(() => {
     if (!selectedDay) return '';
     const daySpots = spots.filter(s => dayLabelToDate(s.day_label) === selectedDay);
@@ -351,7 +339,6 @@ export default function MapView() {
 
   return (
     <div className="relative space-y-3">
-      {/* Loading / Error */}
       {loading && (
         <div className="bg-soft-white rounded-card shadow-card p-6 text-center">
           <p className="text-sm text-warm-gray">🗺️ 正在載入景點資料...</p>
@@ -366,7 +353,6 @@ export default function MapView() {
 
       {!loading && !error && (
         <>
-          {/* Sync & Export row */}
           <div className="flex gap-2">
             <button onClick={handleSync} disabled={syncing}
               className="text-xs px-3 py-1.5 bg-ocean text-white rounded-lg font-medium hover:bg-ocean/90 transition-colors disabled:opacity-60">
@@ -382,7 +368,6 @@ export default function MapView() {
             <div className="bg-ocean/5 border border-ocean/20 rounded-lg p-2 text-xs text-ocean">{syncMsg}</div>
           )}
 
-          {/* Filters */}
           <div className="flex flex-wrap gap-1.5 items-center">
             <span className="text-[10px] text-warm-gray shrink-0">日期：</span>
             <button
@@ -420,7 +405,6 @@ export default function MapView() {
             })}
           </div>
 
-          {/* Legend */}
           <details className="bg-soft-white rounded-lg border border-sand/30">
             <summary className="p-2 text-[10px] text-warm-gray cursor-pointer list-none">🎨 圖例</summary>
             <div className="px-3 pb-2 grid grid-cols-3 gap-1">
@@ -437,7 +421,6 @@ export default function MapView() {
             </div>
           </details>
 
-          {/* Reset */}
           {(selectedDay || selectedCategory) && (
             <button onClick={() => { setSelectedDay(''); setSelectedCategory(''); }}
               className="text-xs text-ocean font-medium hover:underline">🔄 全部顯示（{filteredSpots.length} 景點）</button>
@@ -445,14 +428,12 @@ export default function MapView() {
         </>
       )}
 
-      {/* Map container */}
       <div
         ref={mapContainerRef}
         className="w-full rounded-card overflow-hidden shadow-card border border-sand/50"
         style={{ height: 'clamp(350px, 55vh, 65vh)' }}
       />
 
-      {/* FAB: Add spot */}
       {!loading && !error && (
         <>
           <button
@@ -468,44 +449,27 @@ export default function MapView() {
                   <h3 className="text-sm font-semibold text-navy">新增景點</h3>
                   <button onClick={() => setShowForm(false)} className="text-warm-gray text-lg">✕</button>
                 </div>
-
-                <input value={formName} onChange={e => setFormName(e.target.value)}
-                  placeholder="景點名稱 *" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
-
+                <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="景點名稱 *" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
                 <div className="flex gap-2">
-                  <select value={formCategory} onChange={e => setFormCategory(e.target.value)}
-                    className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand">
+                  <select value={formCategory} onChange={e => setFormCategory(e.target.value)} className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand">
                     <option value="">分類</option>
                     {ALL_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_ZH[c] || c}</option>)}
                   </select>
-                  <select value={formDay} onChange={e => setFormDay(e.target.value)}
-                    className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand">
+                  <select value={formDay} onChange={e => setFormDay(e.target.value)} className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand">
                     <option value="">日期</option>
                     {ALL_DAYS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
-
                 <div className="flex gap-2 items-center">
-                  <input value={formLat} onChange={e => setFormLat(e.target.value)}
-                    placeholder="緯度 lat *" className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
-                  <input value={formLng} onChange={e => setFormLng(e.target.value)}
-                    placeholder="經度 lng *" className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
-                  <button onClick={useCurrentLocation}
-                    className="text-xs px-3 py-2.5 bg-gold-light/40 text-gold rounded-lg font-medium shrink-0 whitespace-nowrap">
-                    📍 目前位置
-                  </button>
+                  <input value={formLat} onChange={e => setFormLat(e.target.value)} placeholder="緯度 lat *" className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
+                  <input value={formLng} onChange={e => setFormLng(e.target.value)} placeholder="經度 lng *" className="flex-1 text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
+                  <button onClick={useCurrentLocation} className="text-xs px-3 py-2.5 bg-gold-light/40 text-gold rounded-lg font-medium shrink-0 whitespace-nowrap">📍 目前位置</button>
                 </div>
                 {formMsg && <p className="text-xs text-ocean">{formMsg}</p>}
-
-                <input value={formAddress} onChange={e => setFormAddress(e.target.value)}
-                  placeholder="地址" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
-                <input value={formTips} onChange={e => setFormTips(e.target.value)}
-                  placeholder="小提醒" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
-                <input value={formWarning} onChange={e => setFormWarning(e.target.value)}
-                  placeholder="注意事項" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
-
-                <button onClick={handleAddSpot} disabled={formSubmitting}
-                  className="w-full text-sm py-3 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 disabled:opacity-60">
+                <input value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="地址" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
+                <input value={formTips} onChange={e => setFormTips(e.target.value)} placeholder="小提醒" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
+                <input value={formWarning} onChange={e => setFormWarning(e.target.value)} placeholder="注意事項" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
+                <button onClick={handleAddSpot} disabled={formSubmitting} className="w-full text-sm py-3 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 disabled:opacity-60">
                   {formSubmitting ? '新增中...' : '✅ 新增景點'}
                 </button>
               </div>
