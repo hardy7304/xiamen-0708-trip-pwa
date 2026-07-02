@@ -209,25 +209,64 @@ export default function App() {
         )}
 
         {/* Quick Toolbar */}
-        <div className="grid grid-cols-2 gap-2">
-          <a href={geoAmap('厦门五通客运码头')} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 bg-ocean text-white rounded-xl py-3 px-3 text-sm font-medium hover:bg-ocean/90 transition-colors">
-            🗺️ 五通碼頭
-          </a>
-          <a href={geoGoogle('金門水頭碼頭')} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 bg-gold text-navy rounded-xl py-3 px-3 text-sm font-medium hover:bg-gold-light transition-colors">
-            📍 水頭碼頭
-          </a>
+        <div className="space-y-2">
+          {/* 常用導航 */}
+          <p className="text-xs text-warm-gray font-medium">🧭 碼頭導航</p>
+          <div className="grid grid-cols-2 gap-2">
+            <a href={geoAmap('厦门五通客运码头')} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 bg-ocean text-white rounded-xl py-2.5 px-3 text-xs font-medium hover:bg-ocean/90 transition-colors">
+              🗺️ 五通碼頭（廈門）
+            </a>
+            <a href={geoGoogle('金門水頭碼頭')} target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 bg-gold text-navy rounded-xl py-2.5 px-3 text-xs font-medium hover:bg-gold-light transition-colors">
+              📍 水頭碼頭（金門）
+            </a>
+          </div>
+
+          {/* 已訂住宿導航 - only entries the user filled in */}
+          {(() => {
+            const filledStays = stays.map((stay, i) => {
+              const name = hotelNames[String(i)] || '';
+              if (!name) return null;
+              const isXiamen = stay.location === 'xiamen';
+              return {
+                date: stay.checkIn.slice(5), // '07-09'
+                name,
+                url: isXiamen ? geoAmap(name) : geoGoogle(name),
+                isXiamen,
+              };
+            }).filter(Boolean) as { date: string; name: string; url: string; isXiamen: boolean }[];
+            if (filledStays.length === 0) return null;
+            return (
+              <div>
+                <p className="text-xs text-warm-gray font-medium mt-1">🏨 住宿導航</p>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {filledStays.slice(0, 6).map((s, idx) => (
+                    <a key={idx} href={s.url} target="_blank" rel="noopener noreferrer"
+                      className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-2 text-xs font-medium transition-colors truncate ${s.isXiamen ? 'bg-ocean/10 text-ocean hover:bg-ocean/20' : 'bg-gold-light/30 text-gold hover:bg-gold-light/50'}`}>
+                      {s.isXiamen ? '🗺️' : '📍'} {s.date.slice(3)} {s.name.length > 10 ? s.name.slice(0, 8) + '…' : s.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* 民宿導航（家之形） - always show */}
           <a href={geoGoogle('金門縣金城鎮和平新村80號')} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 bg-navy text-cream rounded-xl py-3 px-3 text-sm font-medium hover:bg-navy/80 transition-colors">
-            🏨 民宿導航
+            className="flex items-center justify-center gap-1.5 bg-navy text-cream rounded-xl py-2.5 px-3 text-xs font-medium hover:bg-navy/80 transition-colors text-center">
+            🏠 家之形民宿（金門）
           </a>
+
+          {/* 我的清單 */}
           <button onClick={() => handleNavigate('checklist')}
-            className="flex items-center justify-center gap-1.5 bg-soft-white border border-sand rounded-xl py-3 px-3 text-sm font-medium text-navy hover:bg-cream transition-colors">
+            className="w-full flex items-center justify-center gap-1.5 bg-soft-white border border-sand rounded-xl py-2.5 px-3 text-xs font-medium text-navy hover:bg-cream transition-colors">
             📋 我的清單
           </button>
+
+          {/* 下一個交通 */}
           {nextTransport && (
-            <div className="col-span-2 bg-ocean/5 border border-ocean/20 rounded-xl p-3 text-center">
+            <div className="bg-ocean/5 border border-ocean/20 rounded-xl p-3 text-center">
               <p className="text-xs text-ocean font-medium">⏰ 下一個交通</p>
               <p className="text-sm font-semibold text-navy">
                 {nextTransport.leg.departure} → {nextTransport.leg.arrival} · {nextTransport.leg.date} {nextTransport.leg.departureTime}
