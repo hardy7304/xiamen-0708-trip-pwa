@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/components/bottomnav.tsx","./src/components/checklist.tsx","./src/components/massageplan.tsx","./src/components/placecard.tsx","./src/components/section.tsx","./src/components/staycard.tsx","./src/components/taskcard.tsx","./src/components/timeline.tsx","./src/components/transportcard.tsx","./src/data/trip.ts"],"version":"5.9.3"}
