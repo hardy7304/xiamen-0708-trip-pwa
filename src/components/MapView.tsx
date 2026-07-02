@@ -44,6 +44,19 @@ const ALL_CATEGORIES = ['Landmark', 'Food', 'Mall', 'Cultural', 'Hotel', 'Wellne
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1wM-brW_yG22bcphlBbvHyad98Br7YNVdPgkiXsLkV-c/export?format=csv';
 
+// Map descriptive day_label to actual date string
+function dayLabelToDate(label: string): string | null {
+  const l = label.toLowerCase();
+  if (/金門住宿|金門抵達/.test(l)) return '7/8';
+  if (/小三通|抵達廈門/.test(l)) return '7/9';
+  if (/輕鬆逛街/.test(l)) return '7/10';
+  if (/廈門經典/.test(l)) return '7/11';
+  if (/海邊放鬆/.test(l)) return '7/12';
+  if (/採購按摩/.test(l)) return '7/13';
+  if (/回程|回金門/.test(l)) return '7/14';
+  return null;
+}
+
 function parseCSVLocal(csv: string): SpotRow[] {
   const lines = csv.trim().split('\n');
   if (lines.length < 2) return [];
@@ -177,7 +190,10 @@ export default function MapView() {
   // Filtered spots
   const filteredSpots = useMemo(() => {
     return spots.filter(s => {
-      if (selectedDay && s.day_label !== selectedDay) return false;
+      if (selectedDay) {
+        const mapped = dayLabelToDate(s.day_label);
+        if (!mapped || mapped !== selectedDay) return false;
+      }
       if (selectedCategory && s.category !== selectedCategory) return false;
       return true;
     });
@@ -329,9 +345,7 @@ export default function MapView() {
   // Generate day summary for selected day
   const daySummary = useMemo(() => {
     if (!selectedDay) return '';
-    const daySpots = spots.filter(s => s.day_label === selectedDay);
-    if (daySpots.length === 0) return `${selectedDay}・0 個景點`;
-    // Find the itinerary title from parent data? Just show count
+    const daySpots = spots.filter(s => dayLabelToDate(s.day_label) === selectedDay);
     return `${selectedDay}・${daySpots.length} 個景點`;
   }, [selectedDay, spots]);
 
