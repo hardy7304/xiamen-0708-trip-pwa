@@ -327,19 +327,20 @@ export const itinerary: DayPlan[] = [
     subtitle: '帳戶恢復 / 新戶開戶 / SM / 萬象城',
     sections: [
       {
-        heading: '上午：銀行辦事',
+        heading: '上午：銀行辦事 09:00–11:00',
         timeline: [
-          { time: '09:00–12:00', label: '銀行辦理：帳戶恢復、新戶開戶', highlight: true },
+          { time: '09:00–11:00', label: '銀行辦理：帳戶恢復、新戶開戶', highlight: true },
           { time: '', label: '支付寶/微信綁卡驗證' },
           { time: '', label: '開通手機銀行，ATM 小額提款測試' },
         ],
       },
       {
-        heading: '下午：逛街休息',
+        heading: '下午：補件 + 逛街',
         timeline: [
-          { time: '中午', label: 'SM 城市廣場逛街美食', mapLinks: { amap: geoAmap('SM城市广场') } },
-          { time: '下午', label: '萬象城逛街', mapLinks: { amap: geoAmap('厦门万象城') } },
-          { time: '下午', label: '誠品書店', mapLinks: { amap: geoAmap('厦门诚品书店') } },
+          { time: '14:00–16:00', label: '銀行補件或第二間銀行' },
+          { time: '15:00 後', label: 'SM 城市廣場逛街美食', mapLinks: { amap: geoAmap('SM城市广场') } },
+          { time: '15:00 後', label: '萬象城逛街', mapLinks: { amap: geoAmap('厦门万象城') } },
+          { time: '15:00 後', label: '誠品書店', mapLinks: { amap: geoAmap('厦门诚品书店') } },
         ],
       },
       {
@@ -347,10 +348,12 @@ export const itinerary: DayPlan[] = [
         items: [
           '你：恢復原開戶銀行帳戶',
           '妹妹：辦理新戶開戶',
-          '開通手機銀行',
-          'ATM 查詢餘額或小額提款',
+          '開通手機銀行，ATM 查詢餘額或小額提款',
           '測試支付寶/微信支付',
         ],
+      },
+      {
+        alert: '⚠️ 避開 11:30–14:00 與 16:30 後辦複雜銀行業務',
       },
     ],
   },
@@ -361,14 +364,14 @@ export const itinerary: DayPlan[] = [
     sections: [
       {
         timeline: [
-          { time: '上午', label: '南普陀寺參拜、拍照', mapLinks: { amap: geoAmap('南普陀寺') } },
-          { time: '上午', label: '廈門大學（需提前微信預約）', mapLinks: { amap: geoAmap('厦门大学') }, detail: '中國最美校園，芙蓉湖倒影必拍' },
-          { time: '中午', label: '沙坡尾文創區、咖啡廳', mapLinks: { amap: geoAmap('沙坡尾艺术西区') } },
-          { time: '下午', label: '廈門老城區騎樓散步', mapLinks: { amap: geoAmap('厦门老城区骑楼') } },
-          { time: '傍晚', label: '中山路步行街、伴手禮逛逛', mapLinks: { amap: geoAmap('中山路步行街') } },
-          { time: '晚上', label: '大輪碼頭夜市', mapLinks: { amap: geoAmap('大轮码头夜市') } },
+          { time: '07:30–09:00', label: '南普陀寺參拜、拍照', mapLinks: { amap: geoAmap('南普陀寺') }, detail: '早上人少清涼' },
+          { time: '09:00–10:30', label: '廈門大學（需提前微信預約）', mapLinks: { amap: geoAmap('厦门大学') }, detail: '中國最美校園，芙蓉湖倒影必拍' },
+          { time: '10:30–12:30', label: '沙坡尾文創區、咖啡廳', mapLinks: { amap: geoAmap('沙坡尾艺术西区') } },
+          { time: '15:00–16:30', label: '廈門老城區騎樓散步', mapLinks: { amap: geoAmap('厦门老城区骑楼') } },
+          { time: '16:30–18:30', label: '中山路步行街、伴手禮逛逛', mapLinks: { amap: geoAmap('中山路步行街') } },
+          { time: '18:00–19:30', label: '大輪碼頭夜市', mapLinks: { amap: geoAmap('大轮码头夜市') } },
         ],
-        alert: '備選：鷺江夜遊（¥80/人，夜景超美，建議提前訂票）',
+        alert: '⚠️ 週六中山路 19:00–21:00 人潮最多，盡量避開 · 備選：鷺江夜遊（¥80/人）',
       },
     ],
   },
@@ -379,33 +382,40 @@ export const itinerary: DayPlan[] = [
     sections: [
       {
         timeline: [
-          { time: '上午', label: '胡里山炮台（世界最大古炮）', mapLinks: { amap: geoAmap('胡里山炮台') } },
-          { time: '上午', label: '環島路騎行或散步', mapLinks: { amap: geoAmap('环岛路') } },
-          { time: '中午', label: '曾厝垵文創漁村、小吃午餐', mapLinks: { amap: geoAmap('曾厝垵文创渔村') } },
-          { time: '下午', label: '文曾路咖啡街休息', mapLinks: { amap: geoAmap('文曾路咖啡街') } },
-          { time: '傍晚', label: '黃厝沙灘看夕陽、拍照', mapLinks: { amap: geoAmap('黄厝海滨浴场') } },
+          { time: '08:30–10:00', label: '胡里山炮台（世界最大古炮）', mapLinks: { amap: geoAmap('胡里山炮台') } },
+          { time: '10:00–11:30', label: '環島路騎行或散步', mapLinks: { amap: geoAmap('环岛路') } },
+          { time: '11:00 前 / 14:00–16:00', label: '曾厝垵文創漁村、小吃午餐', mapLinks: { amap: geoAmap('曾厝垵文创渔村') }, detail: '11:00 前去或午後去，避開中午人潮' },
+          { time: '14:00–16:00', label: '文曾路咖啡街休息', mapLinks: { amap: geoAmap('文曾路咖啡街') } },
+          { time: '16:30–18:30', label: '黃厝沙灘看夕陽、拍照', mapLinks: { amap: geoAmap('黄厝海滨浴场') }, detail: '週日海邊人多，傍晚去最舒適' },
         ],
-        alert: '⚠️ 7月注意防曬，水母季不建議游泳，以拍照為主',
+        alert: '⚠️ 7月注意防曬與水母，週日海邊人多，不建議游泳，以拍照為主',
       },
     ],
   },
   {
     date: '7/13 (一)',
-    title: '伴手禮 + 補件 + 按摩',
-    subtitle: '第八市場 / 補辦銀行 / 手佳按摩',
+    title: '八市 + 採購 + 補件 + 按摩',
+    subtitle: '第八市場 / 火車站商圈 / 銀行補件 / 手佳按摩',
     sections: [
       {
-        heading: '上午：伴手禮採購',
+        heading: '上午：市場採購',
         timeline: [
-          { time: '早上', label: '第八市場（八市）→ 海鮮乾貨茶葉', mapLinks: { amap: geoAmap('厦门第八市场') }, detail: '早上越早去越新鮮，中午後攤位收攤' },
-          { time: '上午', label: '火車站商圈或特產店', mapLinks: { amap: geoAmap('厦门火车站商圈') }, detail: '地下商場超便宜，買衣服鞋子首選' },
+          { time: '07:30–09:30', label: '第八市場（八市）→ 海鮮乾貨茶葉', mapLinks: { amap: geoAmap('厦门第八市场') }, detail: '早上越早去越新鮮，中午後攤位收攤' },
+          { time: '09:30–11:00', label: '老城伴手禮採購', mapLinks: { amap: geoAmap('中山路步行街') } },
         ],
       },
       {
-        heading: '下午：補件 + 按摩',
+        heading: '下午：補件 + 商圈',
         timeline: [
-          { time: '下午', label: '銀行補件（若 7/10 未完成）' },
-          { time: '下午/晚上', label: '手佳健康會所・松柏港龍店', mapLinks: { amap: geoAmap('手佳按摩 松柏') } },
+          { time: '09:00–11:00 / 14:00–16:00', label: '銀行補件（若 7/10 未完成）' },
+          { time: '14:00–16:30', label: '火車站商圈或特產店', mapLinks: { amap: geoAmap('厦门火车站商圈') }, detail: '地下商場超便宜，買衣服鞋子首選' },
+        ],
+      },
+      {
+        heading: '晚上：按摩放鬆',
+        timeline: [
+          { time: '17:30–21:00', label: '手佳健康會所按摩、吃飯、休息', mapLinks: { amap: geoAmap('手佳按摩 松柏') } },
+          { time: '21:00–22:00', label: '回飯店休息', highlight: true },
         ],
       },
       {
@@ -414,8 +424,8 @@ export const itinerary: DayPlan[] = [
           '手佳健康會所・松柏港龍店',
           '預算：每人 RMB 300–450',
           '套餐：80–100 分鐘全身/香薰/油壓按摩',
-          '含洗澡、餐飲/自助餐、休息區',
-          '可作為最後一晚過夜備案（見按摩說明）',
+          '含洗澡、餐飲/自助餐',
+          '按摩吃飯後回飯店，不作為正式住宿',
         ],
         alert: '建議提前電話預約，務必確認預約前必問清單',
       },
@@ -549,15 +559,14 @@ export const massagePlan: MassagePlan = {
   options: ['全身按摩', '香薰按摩', '油壓按摩'],
   tips: [
     '建議提前一天電話預約',
-    '含洗澡設施',
-    '含餐飲/自助餐',
-    '可作為最後一晚過夜備案（節省一晚住宿費）',
-    '按摩完可休息，若重視睡眠品質建議保留飯店',
+    '按摩 → 洗澡 → 吃飯 → 休息，不作為正式住宿',
+    '證件、現金、3C、伴手禮放飯店較安全',
+    '女生同行建議回飯店睡，睡眠品質比省一晚住宿更重要',
+    '隔天要搭船，建議 22:00 前回飯店',
   ],
   beforeBooking: [
     '確認可用台灣手機號預約',
     '確認套餐價格與時長（是否含自助餐）',
-    '確認是否可過夜、餐飲供應時間、最低消費門檻',
     '確認是否需要自備衣物',
     '確認支付方式（現金/微信/支付寶）',
     '確認營業時間（通常到凌晨）',

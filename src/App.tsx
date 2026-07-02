@@ -556,6 +556,44 @@ export default function App() {
         </div>
       </Section>
 
+      {/* Accommodation Strategy Section */}
+      <Section id="stay-strategy" title="住宿區域建議" icon="🏨" subtitle="每晚住宿策略">
+        <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-navy mb-2">📍 推薦住宿區域</h3>
+            <div className="space-y-2 text-xs text-warm-gray">
+              <p><span className="text-gold font-medium">7/8</span> · 金門家之形民宿（已訂）</p>
+              <p><span className="text-gold font-medium">7/9–7/10</span> · 五緣灣 / 湖里區，適合小三通、辦手機卡、銀行、SM、萬象城</p>
+              <p><span className="text-gold font-medium">7/11–7/12</span> · 可繼續住五緣灣/湖里減少搬行李；若想逛景點方便，可住思明外圍，但不要住中山路最核心</p>
+              <p><span className="text-gold font-medium">7/13</span> · 松柏 / 蓮花路口 / 火車站附近，方便手佳按摩後回飯店，隔天去五通碼頭也方便</p>
+              <p><span className="text-gold font-medium">7/14</span> · 金門民宿</p>
+            </div>
+          </div>
+          <div className="border-t border-sand/30 pt-3">
+            <h3 className="text-sm font-semibold text-navy mb-2">💰 住宿等級策略</h3>
+            <div className="space-y-1.5 text-xs text-warm-gray">
+              <p>• <span className="text-ocean font-medium">平日（7/9、7/10）</span>：可選五星級或高級飯店</p>
+              <p>• <span className="text-gold font-medium">週六日（7/11、7/12）</span>：可選乾淨安全的平價或中階飯店</p>
+              <p>• <span className="text-coral font-medium">7/13</span>：按摩後要回飯店，建議不要太省，選安全、交通方便的飯店</p>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Crowd Avoidance Section */}
+      <Section id="crowd-tips" title="避開人潮建議" icon="⏰" subtitle="讓你玩得更舒服">
+        <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-2 text-xs text-warm-gray">
+          <p>🌅 <span className="text-ocean font-medium">景點日早出門</span> · 南普陀、廈大、胡里山炮台建議 08:30 前到</p>
+          <p>🚫 <span className="text-coral font-medium">週六中山路</span> · 避開 19:00–21:00 尖峰人潮</p>
+          <p>🏖️ <span className="text-ocean font-medium">週日黃厝沙灘</span> · 建議 16:30–18:30，傍晚最舒服</p>
+          <p>🐟 <span className="text-gold font-medium">八市（第八市場）</span> · 建議 07:30–09:30，早上最新鮮</p>
+          <p>🏦 <span className="text-ocean font-medium">銀行辦事</span> · 建議 09:00–11:00 或 14:00–16:00，避開中午休息</p>
+          <p>🛍️ <span className="text-gold font-medium">商場逛街</span> · 建議下午或晚餐前去，避開中午最熱時段</p>
+          <p>🍽️ <span className="text-coral font-medium">午餐避開</span> · 12:00–13:00 人最多</p>
+          <p>🍽️ <span className="text-coral font-medium">晚餐避開</span> · 18:30–19:30 人最多</p>
+        </div>
+      </Section>
+
       {/* Massage Section */}
       <Section id="massage" title="手佳按摩" icon="💆">
         <MassagePlan plan={massagePlan} />
