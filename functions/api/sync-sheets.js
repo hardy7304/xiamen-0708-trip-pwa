@@ -137,7 +137,8 @@ function parseCSV(csvText) {
     }
 
     const amapCity = amapCityIdx >= 0 ? (cols[amapCityIdx] || '').trim() || '廈門' : '廈門';
-    const googleKeyword = googleKwIdx >= 0 ? (cols[googleKwIdx] || '').trim() || (mapProvider === 'google' ? '金門 ' + rawName : '');
+    let googleKeyword = googleKwIdx >= 0 ? (cols[googleKwIdx] || '').trim() : '';
+    if (!googleKeyword && mapProvider === 'google') googleKeyword = '金門 ' + rawName;
     const navNote = navNoteIdx >= 0 ? (cols[navNoteIdx] || '').trim()
       : (mapProvider === 'amap' ? '廈門建議使用高德地圖搜尋定位，避免 Google 座標偏移' : '金門建議使用 Google Maps');
 
