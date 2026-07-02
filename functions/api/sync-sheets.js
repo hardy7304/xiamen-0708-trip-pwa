@@ -2,6 +2,18 @@
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1wM-brW_yG22bcphlBbvHyad98Br7YNVdPgkiXsLkV-c/export?format=csv';
 
+// Coordinate corrections applied after CSV parse (override Sheets values)
+const COORD_FIXES = {
+  '曾厝垵文創漁村': { lat: 24.4489, lng: 118.1389 },
+  '南普陀寺': { lat: 24.4623, lng: 118.0823 },
+  '沙坡尾文創區': { lat: 24.4489, lng: 118.0823 },
+  '環島路': { lat: 24.4178, lng: 118.1523 },
+  '黃厝沙灘': { lat: 24.4156, lng: 118.1589 },
+  '鷺江夜遊': { lat: 24.4489, lng: 118.0712 },
+  '鼓浪嶼碼頭': { lat: 24.4534, lng: 118.0712 },
+  '大輪碼頭夜市': { lat: 24.4512, lng: 118.0712 },
+};
+
 function parseCSVLine(line) {
   const result = [];
   let current = '';
@@ -34,11 +46,13 @@ function parseCSV(csvText) {
   const warningIdx = headers.indexOf('warning');
   return lines.slice(1).map(line => {
     const cols = parseCSVLine(line);
+    const rawName = (cols[nameIdx] || '').trim();
+    const fix = COORD_FIXES[rawName];
     return {
       id: `csv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      name: (cols[nameIdx] || '').trim(),
-      lat: parseFloat(cols[latIdx] || '0'),
-      lng: parseFloat(cols[lngIdx] || '0'),
+      name: rawName,
+      lat: fix ? fix.lat : parseFloat(cols[latIdx] || '0'),
+      lng: fix ? fix.lng : parseFloat(cols[lngIdx] || '0'),
       category: (cols[catIdx] || '').trim(),
       day_label: (cols[dayIdx] || '').trim(),
       hours: (cols[hoursIdx] || '').trim(),
