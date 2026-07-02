@@ -71,10 +71,39 @@ export default function App() {
   const tripStatus = getTripStatus();
   const daysUntil = getDaysUntilTrip();
 
-  // Custom itinerary
+  // Custom itinerary - load from localStorage as initial cache, then sync from KV
   const [customItems, setCustomItems] = useState<CustomItineraryItem[]>(() => loadJSON(CUSTOM_KEY, []));
   const [hiddenDays, setHiddenDays] = useState<string[]>(() => loadJSON(HIDDEN_KEY, []));
   const [hotelNames, setHotelNames] = useState<Record<string, string>>(() => loadJSON(HOTEL_KEY, {}));
+  const [dataSynced, setDataSynced] = useState(false);
+
+  // On mount: try loading from KV (cloud sync), fallback to localStorage
+  useEffect(() => {
+    fetch('/api/trip-data')
+      .then(r => r.json())
+      .then((res: { data?: { hotelNames?: Record<string, string>; customItems?: CustomItineraryItem[]; hiddenDays?: string[] } }) => {
+        if (res.data) {
+          if (res.data.hotelNames) { setHotelNames(res.data.hotelNames); saveJSON(HOTEL_KEY, res.data.hotelNames); }
+          if (res.data.customItems) { setCustomItems(res.data.customItems); saveJSON(CUSTOM_KEY, res.data.customItems); }
+          if (res.data.hiddenDays) { setHiddenDays(res.data.hiddenDays); saveJSON(HIDDEN_KEY, res.data.hiddenDays); }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setDataSynced(true));
+  }, []);
+
+  // Sync to KV whenever data changes (debounced)
+  useEffect(() => {
+    if (!dataSynced) return;
+    const timer = setTimeout(() => {
+      fetch('/api/trip-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hotelNames, customItems, hiddenDays }),
+      }).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [hotelNames, customItems, hiddenDays, dataSynced]);
 
   const persistCustom = useCallback((items: CustomItineraryItem[]) => { setCustomItems(items); saveJSON(CUSTOM_KEY, items); }, []);
   const persistHidden = useCallback((h: string[]) => { setHiddenDays(h); saveJSON(HIDDEN_KEY, h); }, []);
