@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { MassagePlan as MassagePlanType } from '../data/trip';
 
 interface MassagePlanProps {
@@ -5,6 +6,8 @@ interface MassagePlanProps {
 }
 
 export default function MassagePlan({ plan }: MassagePlanProps) {
+  const [showChecklist, setShowChecklist] = useState(false);
+
   return (
     <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50">
       <div className="flex items-center gap-2 mb-3">
@@ -14,6 +17,24 @@ export default function MassagePlan({ plan }: MassagePlanProps) {
           <p className="text-xs text-warm-gray">{plan.location}</p>
         </div>
       </div>
+
+      {/* Map button */}
+      {plan.mapLinks && (
+        <div className="flex gap-2 mb-4">
+          {plan.mapLinks.amap && (
+            <a href={plan.mapLinks.amap} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs px-4 py-2.5 rounded-full bg-ocean/10 text-ocean font-semibold hover:bg-ocean/20 transition-colors">
+              🗺️ 高德地圖開啟
+            </a>
+          )}
+          {plan.mapLinks.google && (
+            <a href={plan.mapLinks.google} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs px-4 py-2.5 rounded-full bg-gold-light/40 text-gold font-semibold hover:bg-gold-light/60 transition-colors">
+              📍 Google Maps
+            </a>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-cream rounded-xl p-3 text-center">
@@ -36,6 +57,31 @@ export default function MassagePlan({ plan }: MassagePlanProps) {
           ))}
         </div>
       </div>
+
+      {/* Before booking checklist */}
+      {plan.beforeBooking && plan.beforeBooking.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowChecklist(!showChecklist)}
+            className="w-full flex items-center justify-between text-xs font-medium text-coral bg-coral/5 rounded-xl p-3 hover:bg-coral/10 transition-colors"
+          >
+            <span>📋 預約前必問清單</span>
+            <svg className={`w-3.5 h-3.5 transition-transform ${showChecklist ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {showChecklist && (
+            <div className="bg-coral/5 border border-coral/10 rounded-xl p-3 mt-2 space-y-1.5">
+              {plan.beforeBooking.map((item, i) => (
+                <p key={i} className="text-xs text-warm-gray flex items-start gap-2">
+                  <span className="text-coral shrink-0">☐</span>
+                  {item}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="border-t border-sand/50 pt-3">
         {plan.tips.map((tip, i) => (

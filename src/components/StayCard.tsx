@@ -1,36 +1,123 @@
+import { useState } from 'react';
 import type { Stay } from '../data/trip';
+import { geoAmap, geoGoogle } from '../data/trip';
 
 interface StayCardProps {
   stay: Stay;
+  hotelName: string;
+  onHotelNameChange: (name: string) => void;
 }
 
-export default function StayCard({ stay }: StayCardProps) {
+export default function StayCard({ stay, hotelName, onHotelNameChange }: StayCardProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(hotelName || '');
+
+  const displayName = hotelName || stay.name;
+  const displayStatus = hotelName ? 'confirmed-by-user' : stay.status;
+  const isPending = displayStatus === 'pending';
+  const isUserConfirmed = displayStatus === 'confirmed-by-user';
+
+  const userMapLinks = (hotelName && stay.location === 'xiamen')
+    ? { amap: geoAmap(hotelName) }
+    : (hotelName && stay.location === 'kinmen')
+      ? { google: geoGoogle(hotelName) }
+      : undefined;
+  const activeMapLinks = userMapLinks || stay.mapLinks;
+
+  const handleSave = () => {
+    onHotelNameChange(draft.trim());
+    setEditing(false);
+  };
+
   return (
-    <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50">
+    <div className={`bg-soft-white rounded-card shadow-card p-5 border ${
+      isPending ? 'border-amber-200' : isUserConfirmed ? 'border-green-200' : 'border-sand/50'
+    }`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">🏨</span>
           <div>
-            <p className="text-sm font-semibold text-navy">{stay.name}</p>
+            <p className="text-sm font-semibold text-navy">{displayName}</p>
             <p className="text-xs text-warm-gray">{stay.location === 'kinmen' ? '金門' : '廈門'}</p>
           </div>
         </div>
-        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
-          {stay.status}
+        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+          isPending ? 'bg-amber-100 text-amber-700' : isUserConfirmed ? 'bg-green-100 text-green-700' : 'bg-green-100 text-green-700'
+        }`}>
+          {isPending ? '待訂' : isUserConfirmed ? '已訂' : stay.status}
         </span>
       </div>
       <p className="text-xs text-warm-gray mb-3">{stay.address}</p>
       <div className="flex items-center gap-4 text-xs text-warm-gray mb-3">
-        <div>
-          <span className="text-gold">入住 </span>
-          {stay.checkIn}
-        </div>
-        <div>
-          <span className="text-gold">退房 </span>
-          {stay.checkOut}
-        </div>
+        <div><span className="text-gold">入住 </span>{stay.checkIn}</div>
+        <div><span className="text-gold">退房 </span>{stay.checkOut}</div>
       </div>
       <p className="text-xs text-warm-gray mb-1">{stay.roomType}</p>
+
+      {/* Pending suggestions */}
+      {isPending && stay.suggestion && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-3 mb-3">
+          <p className="text-xs text-amber-800 font-medium mb-1">💡 建議住宿</p>
+          <p className="text-xs text-amber-700">{stay.suggestion}</p>
+          {activeMapLinks && (
+            <div className="mt-2 flex gap-1.5">
+              {activeMapLinks.amap && (
+                <a href={activeMapLinks.amap} target="_blank" rel="noopener noreferrer"
+                  className="text-xs px-2.5 py-1 rounded-full bg-ocean/10 text-ocean font-medium hover:bg-ocean/20">
+                  🗺️ 高德查看
+                </a>
+              )}
+              {activeMapLinks.google && (
+                <a href={activeMapLinks.google} target="_blank" rel="noopener noreferrer"
+                  className="text-xs px-2.5 py-1 rounded-full bg-gold-light/40 text-gold font-medium hover:bg-gold-light/60">
+                  📍 Google 查看
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* User-confirmed hotel */}
+      {isUserConfirmed && activeMapLinks && (
+        <div className="flex gap-1.5 mt-2 mb-3">
+          {activeMapLinks.amap && (
+            <a href={activeMapLinks.amap} target="_blank" rel="noopener noreferrer"
+              className="text-xs px-2.5 py-1 rounded-full bg-ocean/10 text-ocean font-medium hover:bg-ocean/20">
+              🗺️ 高德地圖
+            </a>
+          )}
+          {activeMapLinks.google && (
+            <a href={activeMapLinks.google} target="_blank" rel="noopener noreferrer"
+              className="text-xs px-2.5 py-1 rounded-full bg-gold-light/40 text-gold font-medium hover:bg-gold-light/60">
+              📍 Google 地圖
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Hotel name input */}
+      <div className="border-t border-sand/50 pt-3 mt-2">
+        {editing ? (
+          <div className="flex gap-2 items-center">
+            <input
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder="輸入已訂飯店名稱"
+              className="flex-1 text-xs bg-cream rounded-lg px-3 py-2 border border-sand"
+              autoFocus
+            />
+            <button onClick={handleSave} className="text-xs px-3 py-1.5 bg-ocean text-white rounded-lg font-medium">儲存</button>
+            <button onClick={() => { setEditing(false); setDraft(hotelName || ''); }} className="text-xs px-2 py-1.5 text-warm-gray">取消</button>
+          </div>
+        ) : (
+          <button onClick={() => { setEditing(true); setDraft(hotelName || ''); }}
+            className="text-xs text-ocean font-medium hover:underline">
+            {hotelName ? '✏️ 修改飯店名稱' : '✏️ 填入已訂飯店名稱'}
+          </button>
+        )}
+      </div>
+
       {stay.notes.length > 0 && (
         <div className="border-t border-sand/50 pt-3 mt-2">
           {stay.notes.map((note, i) => (

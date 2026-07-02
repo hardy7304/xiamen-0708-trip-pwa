@@ -1,6 +1,19 @@
+export interface MapLinks {
+  amap?: string;
+  google?: string;
+}
+
+export function geoGoogle(query: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+export function geoAmap(query: string): string {
+  return `https://uri.amap.com/search?keyword=${encodeURIComponent(query)}`;
+}
+
 export interface TransportLeg {
   type: 'flight' | 'ferry';
   date: string;
+  dateTime: string; // ISO datetime for countdown calc
   company: string;
   flightNo: string;
   departure: string;
@@ -18,9 +31,11 @@ export interface Stay {
   checkIn: string;
   checkOut: string;
   roomType: string;
-  status: string;
+  status: 'booked' | 'pending' | 'confirmed-by-user';
   notes: string[];
   location: 'kinmen' | 'xiamen';
+  suggestion?: string; // suggested area/hotel when pending
+  mapLinks?: MapLinks;
 }
 
 export interface TimelineItem {
@@ -28,6 +43,7 @@ export interface TimelineItem {
   label: string;
   detail?: string;
   highlight?: boolean;
+  mapLinks?: MapLinks;
 }
 
 export interface DayPlan {
@@ -60,6 +76,7 @@ export interface Place {
   category: string;
   description: string;
   tips: string;
+  mapLinks?: MapLinks;
 }
 
 export interface MassagePlan {
@@ -69,6 +86,8 @@ export interface MassagePlan {
   duration: string;
   options: string[];
   tips: string[];
+  beforeBooking: string[];
+  mapLinks?: MapLinks;
 }
 
 export interface SimTask {
@@ -80,11 +99,22 @@ export interface SimTask {
   tips?: string[];
 }
 
+export interface CustomItineraryItem {
+  id: string;
+  date: string; // '7/8 (三)' etc.
+  time: string;
+  title: string;
+  note?: string;
+  place?: string;
+  mapLinks?: MapLinks;
+}
+
 // ----- TRANSPORT -----
 export const transportLegs: TransportLeg[] = [
   {
     type: 'flight',
     date: '2026-07-08',
+    dateTime: '2026-07-08T17:25:00+08:00',
     company: '立榮航空',
     flightNo: 'B7-8927',
     departure: '高雄小港機場',
@@ -97,6 +127,7 @@ export const transportLegs: TransportLeg[] = [
   {
     type: 'ferry',
     date: '2026-07-09',
+    dateTime: '2026-07-09T09:00:00+08:00',
     company: '新東方',
     flightNo: 'BR4007',
     departure: '金門水頭碼頭',
@@ -110,6 +141,7 @@ export const transportLegs: TransportLeg[] = [
   {
     type: 'ferry',
     date: '2026-07-14',
+    dateTime: '2026-07-14T17:00:00+08:00',
     company: '新東方',
     flightNo: 'AR4007A',
     departure: '廈門五通碼頭',
@@ -123,6 +155,7 @@ export const transportLegs: TransportLeg[] = [
   {
     type: 'flight',
     date: '2026-07-15',
+    dateTime: '2026-07-15T11:30:00+08:00',
     company: '立榮航空',
     flightNo: 'B7-8982',
     departure: '金門尚義機場',
@@ -142,9 +175,34 @@ export const stays: Stay[] = [
     checkIn: '2026-07-08',
     checkOut: '2026-07-09',
     roomType: '雙人房，共用衛浴',
-    status: '已訂',
+    status: 'booked',
     location: 'kinmen',
     notes: ['不可退訂', '房費現場付', '詢問民宿是否可協助叫車去水頭碼頭'],
+    mapLinks: { google: geoGoogle('金門縣金城鎮和平新村80號') },
+  },
+  {
+    name: '廈門住宿（待訂）',
+    address: '建議：五通/五緣灣區域',
+    checkIn: '2026-07-09',
+    checkOut: '2026-07-14',
+    roomType: '雙人房',
+    status: 'pending',
+    location: 'xiamen',
+    suggestion: '佰翔五通酒店、五緣灣凱悅酒店、或五緣灣周邊民宿',
+    notes: ['建議靠近五通碼頭方便回程搭船', '靠近五緣灣生活機能好'],
+    mapLinks: { amap: geoAmap('佰翔五通酒店') },
+  },
+  {
+    name: '金門住宿（待訂）',
+    address: '建議：金城鎮或金湖鎮',
+    checkIn: '2026-07-14',
+    checkOut: '2026-07-15',
+    roomType: '雙人房',
+    status: 'pending',
+    location: 'kinmen',
+    suggestion: '金城鎮民宿或金湖大飯店',
+    notes: ['靠近機場方便 7/15 搭機', '金城鎮有夜市可逛'],
+    mapLinks: { google: geoGoogle('金門金城鎮住宿') },
   },
 ];
 
@@ -157,10 +215,10 @@ export const itinerary: DayPlan[] = [
     sections: [
       {
         timeline: [
-          { time: '16:00', label: '抵達小港機場', highlight: true },
+          { time: '16:00', label: '抵達小港機場', highlight: true, mapLinks: { google: geoGoogle('高雄小港機場') } },
           { time: '17:25', label: '立榮 B7-8927 起飛' },
-          { time: '18:30', label: '抵達金門尚義機場' },
-          { time: '19:00', label: '前往家之形民宿辦理入住' },
+          { time: '18:30', label: '抵達金門尚義機場', mapLinks: { google: geoGoogle('金門尚義機場') } },
+          { time: '19:00', label: '前往家之形民宿辦理入住', mapLinks: { google: geoGoogle('金門縣金城鎮和平新村80號') } },
         ],
       },
       {
@@ -185,11 +243,11 @@ export const itinerary: DayPlan[] = [
           { time: '06:50', label: '起床', highlight: true },
           { time: '07:10–07:30', label: '整理行李、確認證件' },
           { time: '07:30–07:45', label: '退房' },
-          { time: '07:45', label: '從家之形民宿出發', highlight: true },
-          { time: '08:10–08:20', label: '抵達水頭碼頭' },
+          { time: '07:45', label: '從家之形民宿出發', highlight: true, mapLinks: { google: geoGoogle('金門縣金城鎮和平新村80號') } },
+          { time: '08:10–08:20', label: '抵達水頭碼頭', mapLinks: { google: geoGoogle('金門水頭碼頭') } },
           { time: '08:20–08:45', label: '取票、報到、出境' },
           { time: '09:00', label: '金門 → 五通開船' },
-          { time: '09:30', label: '抵達廈門五通', highlight: true },
+          { time: '09:30', label: '抵達廈門五通', highlight: true, mapLinks: { amap: geoAmap('厦门五通客运码头') } },
         ],
       },
       {
@@ -200,7 +258,7 @@ export const itinerary: DayPlan[] = [
           { time: '11:30–12:30', label: '午餐' },
           { time: '12:30–14:00', label: '補辦銀行/支付寶/微信' },
           { time: '14:00–15:00', label: '前往飯店寄放行李或入住' },
-          { time: '晚上', label: '五緣灣/湖里區吃飯、買日用品' },
+          { time: '晚上', label: '五緣灣/湖里區吃飯、買日用品', mapLinks: { amap: geoAmap('五缘湾') } },
         ],
       },
       {
@@ -227,6 +285,11 @@ export const itinerary: DayPlan[] = [
           '萬象城美食',
           '不排太趕，輕鬆為主',
         ],
+        timeline: [
+          { time: '上午', label: '五緣灣散步、拍照', mapLinks: { amap: geoAmap('五缘湾') } },
+          { time: '中午', label: 'SM 城市廣場逛街美食', mapLinks: { amap: geoAmap('SM城市广场') } },
+          { time: '下午', label: '萬象城逛街', mapLinks: { amap: geoAmap('厦门万象城') } },
+        ],
       },
     ],
   },
@@ -236,10 +299,10 @@ export const itinerary: DayPlan[] = [
     subtitle: '南普陀 / 沙坡尾 / 中山路',
     sections: [
       {
-        items: [
-          '上午：南普陀寺參拜、拍照',
-          '中午：沙坡尾文創區、咖啡廳',
-          '下午：中山路步行街、伴手禮逛逛',
+        timeline: [
+          { time: '上午', label: '南普陀寺參拜、拍照', mapLinks: { amap: geoAmap('南普陀寺') } },
+          { time: '中午', label: '沙坡尾文創區、咖啡廳', mapLinks: { amap: geoAmap('沙坡尾艺术西区') } },
+          { time: '下午', label: '中山路步行街、伴手禮逛逛', mapLinks: { amap: geoAmap('中山路步行街') } },
         ],
       },
     ],
@@ -250,11 +313,10 @@ export const itinerary: DayPlan[] = [
     subtitle: '環島路 / 黃厝沙灘 / 海邊咖啡',
     sections: [
       {
-        items: [
-          '環島路騎行或散步',
-          '黃厝沙灘曬太陽、玩水',
-          '海邊咖啡廳放鬆',
-          '拍照收集素材',
+        timeline: [
+          { time: '全日', label: '環島路騎行或散步', mapLinks: { amap: geoAmap('环岛路') } },
+          { time: '午後', label: '黃厝沙灘曬太陽、玩水', mapLinks: { amap: geoAmap('黄厝海滨浴场') } },
+          { time: '傍晚', label: '海邊咖啡廳放鬆' },
         ],
       },
     ],
@@ -269,6 +331,10 @@ export const itinerary: DayPlan[] = [
         items: [
           '上午逛市場或特產店',
           '買茶葉、糕餅、乾貨等',
+        ],
+        timeline: [
+          { time: '上午', label: '逛市場或特產店', mapLinks: { amap: geoAmap('中山路步行街') } },
+          { time: '下午', label: '手佳健康會所按摩', mapLinks: { amap: geoAmap('手佳按摩 松柏') } },
         ],
       },
       {
@@ -296,16 +362,14 @@ export const itinerary: DayPlan[] = [
           '不排遠景點',
           '10:00–12:00 輕鬆買伴手禮',
         ],
-      },
-      {
-        heading: '下午時間線',
         timeline: [
+          { time: '10:00–12:00', label: '輕鬆買伴手禮' },
           { time: '13:00–14:00', label: '回飯店拿行李' },
-          { time: '14:30', label: '從飯店出發去五通碼頭', highlight: true },
+          { time: '14:30', label: '從飯店出發去五通碼頭', highlight: true, mapLinks: { amap: geoAmap('厦门五通客运码头') } },
           { time: '15:30', label: '前抵達五通碼頭', highlight: true },
           { time: '16:00', label: '取票/出境/候船' },
           { time: '17:00', label: '開船' },
-          { time: '17:30', label: '抵達金門水頭碼頭' },
+          { time: '17:30', label: '抵達金門水頭碼頭', mapLinks: { google: geoGoogle('金門水頭碼頭') } },
         ],
       },
       {
@@ -320,7 +384,7 @@ export const itinerary: DayPlan[] = [
     sections: [
       {
         timeline: [
-          { time: '10:00', label: '抵達金門尚義機場' },
+          { time: '10:00', label: '抵達金門尚義機場', mapLinks: { google: geoGoogle('金門尚義機場') } },
           { time: '11:30', label: '立榮 B7-8982 起飛' },
           { time: '12:25', label: '抵達台南機場' },
         ],
@@ -395,14 +459,14 @@ export const checklists: ChecklistCategory[] = [
 
 // ----- PLACES -----
 export const places: Place[] = [
-  { name: '南普陀寺', category: '景點', description: '廈門著名佛教寺廟，免費入場', tips: '上午去人少，穿著得體' },
-  { name: '沙坡尾', category: '文創', description: '文創藝術區，咖啡廳與小店林立', tips: '適合拍照、下午茶' },
-  { name: '中山路步行街', category: '購物', description: '廈門最熱鬧的商業街', tips: '伴手禮、小吃多，注意人流' },
-  { name: '環島路', category: '景點', description: '沿海景觀道路，適合騎行', tips: '租共享單車或散步' },
-  { name: '黃厝沙灘', category: '海灘', description: '廈門知名沙灘，沙質細軟', tips: '帶防曬、拖鞋、毛巾' },
-  { name: '五緣灣', category: '景點', description: '新興海灣區，適合散步', tips: '傍晚景色佳' },
-  { name: 'SM 城市廣場', category: '購物', description: '大型購物中心', tips: '冷氣足，可躲中午熱' },
-  { name: '萬象城', category: '購物', description: '高端購物中心，美食選擇多', tips: '餐飲選擇豐富' },
+  { name: '南普陀寺', category: '景點', description: '廈門著名佛教寺廟，免費入場', tips: '上午去人少，穿著得體', mapLinks: { amap: geoAmap('南普陀寺') } },
+  { name: '沙坡尾', category: '文創', description: '文創藝術區，咖啡廳與小店林立', tips: '適合拍照、下午茶', mapLinks: { amap: geoAmap('沙坡尾艺术西区') } },
+  { name: '中山路步行街', category: '購物', description: '廈門最熱鬧的商業街', tips: '伴手禮、小吃多，注意人流', mapLinks: { amap: geoAmap('中山路步行街') } },
+  { name: '環島路', category: '景點', description: '沿海景觀道路，適合騎行', tips: '租共享單車或散步', mapLinks: { amap: geoAmap('环岛路') } },
+  { name: '黃厝沙灘', category: '海灘', description: '廈門知名沙灘，沙質細軟', tips: '帶防曬、拖鞋、毛巾', mapLinks: { amap: geoAmap('黄厝海滨浴场') } },
+  { name: '五緣灣', category: '景點', description: '新興海灣區，適合散步', tips: '傍晚景色佳', mapLinks: { amap: geoAmap('五缘湾') } },
+  { name: 'SM 城市廣場', category: '購物', description: '大型購物中心', tips: '冷氣足，可躲中午熱', mapLinks: { amap: geoAmap('SM城市广场') } },
+  { name: '萬象城', category: '購物', description: '高端購物中心，美食選擇多', tips: '餐飲選擇豐富', mapLinks: { amap: geoAmap('厦门万象城') } },
 ];
 
 // ----- MASSAGE -----
@@ -419,6 +483,14 @@ export const massagePlan: MassagePlan = {
     '按摩完可休息，但不要過夜',
     '按摩完回飯店睡',
   ],
+  beforeBooking: [
+    '確認可用台灣手機號預約',
+    '確認套餐價格與時長（是否含自助餐）',
+    '確認是否需要自備衣物',
+    '確認支付方式（現金/微信/支付寶）',
+    '確認營業時間（通常到凌晨）',
+  ],
+  mapLinks: { amap: geoAmap('手佳按摩 松柏') },
 };
 
 // ----- SIM & PAYMENT -----
@@ -467,6 +539,27 @@ export const tripDates = {
   end: '2026-07-15',
   duration: '8 天 7 夜',
 };
+
+// Get Asia/Taipei date string
+export function getTaipeiToday(): string {
+  const now = new Date();
+  const taipei = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+  return `${taipei.getFullYear()}-${String(taipei.getMonth() + 1).padStart(2, '0')}-${String(taipei.getDate()).padStart(2, '0')}`;
+}
+
+export function getTripStatus(): 'before' | 'during' | 'after' {
+  const today = getTaipeiToday();
+  if (today < tripDates.start) return 'before';
+  if (today > tripDates.end) return 'after';
+  return 'during';
+}
+
+export function getDaysUntilTrip(): number {
+  const today = getTaipeiToday();
+  const start = new Date(tripDates.start + 'T00:00:00+08:00');
+  const now = new Date(today + 'T00:00:00+08:00');
+  return Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
 
 // ----- NAV SECTIONS -----
 export const navSections = [
