@@ -283,7 +283,7 @@ export const itinerary: DayPlan[] = [
   {
     date: '7/9 (四)',
     title: '金門 → 廈門',
-    subtitle: '小三通 + 辦卡 + 銀行',
+    subtitle: '小三通入境 + 辦卡 + 安頓',
     sections: [
       {
         heading: '上午時間線',
@@ -302,9 +302,9 @@ export const itinerary: DayPlan[] = [
         heading: '抵達廈門後',
         timeline: [
           { time: '09:30–10:15', label: '入境、出碼頭' },
-          { time: '10:15–11:30', label: '辦手機卡或確認網路' },
+          { time: '10:15–11:30', label: '辦中國聯通手機卡', highlight: true },
           { time: '11:30–12:30', label: '午餐' },
-          { time: '12:30–14:00', label: '補辦銀行/支付寶/微信' },
+          { time: '12:30–14:00', label: '設定支付寶、微信、高德、滴滴' },
           { time: '14:00–15:00', label: '前往飯店寄放行李或入住' },
           { time: '晚上', label: '五緣灣/湖里區吃飯、買日用品', mapLinks: { amap: geoAmap('五缘湾') } },
         ],
@@ -312,77 +312,100 @@ export const itinerary: DayPlan[] = [
       {
         heading: '重要任務',
         items: [
-          '辦中國聯通手機卡',
-          '詢問低月租保號套餐',
+          '辦中國聯通手機卡 + 低月租保號套餐',
           '綁定支付寶與微信',
           '測試收簡訊',
           '下載高德地圖、滴滴、大眾點評',
+          '銀行辦理移到明天（7/10）',
         ],
       },
     ],
   },
   {
     date: '7/10 (五)',
-    title: '輕鬆逛街日',
-    subtitle: '五緣灣 / SM / 萬象城',
+    title: '銀行辦事 + 湖里商圈',
+    subtitle: '帳戶恢復 / 新戶開戶 / SM / 萬象城',
     sections: [
       {
-        items: [
-          '五緣灣散步、拍照',
-          'SM 城市廣場逛街',
-          '萬象城美食',
-          '不排太趕，輕鬆為主',
-        ],
+        heading: '上午：銀行辦事',
         timeline: [
-          { time: '上午', label: '五緣灣散步、拍照', mapLinks: { amap: geoAmap('五缘湾') } },
+          { time: '09:00–12:00', label: '銀行辦理：帳戶恢復、新戶開戶', highlight: true },
+          { time: '', label: '支付寶/微信綁卡驗證' },
+          { time: '', label: '開通手機銀行，ATM 小額提款測試' },
+        ],
+      },
+      {
+        heading: '下午：逛街休息',
+        timeline: [
           { time: '中午', label: 'SM 城市廣場逛街美食', mapLinks: { amap: geoAmap('SM城市广场') } },
           { time: '下午', label: '萬象城逛街', mapLinks: { amap: geoAmap('厦门万象城') } },
+          { time: '下午', label: '誠品書店', mapLinks: { amap: geoAmap('厦门诚品书店') } },
+        ],
+      },
+      {
+        heading: '銀行任務',
+        items: [
+          '你：恢復原開戶銀行帳戶',
+          '妹妹：辦理新戶開戶',
+          '開通手機銀行',
+          'ATM 查詢餘額或小額提款',
+          '測試支付寶/微信支付',
         ],
       },
     ],
   },
   {
     date: '7/11 (六)',
-    title: '廈門經典景點',
-    subtitle: '南普陀 / 沙坡尾 / 中山路',
+    title: '思明經典老城線',
+    subtitle: '南普陀 / 廈大 / 沙坡尾 / 中山路',
     sections: [
       {
         timeline: [
           { time: '上午', label: '南普陀寺參拜、拍照', mapLinks: { amap: geoAmap('南普陀寺') } },
+          { time: '上午', label: '廈門大學（需提前微信預約）', mapLinks: { amap: geoAmap('厦门大学') }, detail: '中國最美校園，芙蓉湖倒影必拍' },
           { time: '中午', label: '沙坡尾文創區、咖啡廳', mapLinks: { amap: geoAmap('沙坡尾艺术西区') } },
-          { time: '下午', label: '中山路步行街、伴手禮逛逛', mapLinks: { amap: geoAmap('中山路步行街') } },
+          { time: '下午', label: '廈門老城區騎樓散步', mapLinks: { amap: geoAmap('厦门老城区骑楼') } },
+          { time: '傍晚', label: '中山路步行街、伴手禮逛逛', mapLinks: { amap: geoAmap('中山路步行街') } },
+          { time: '晚上', label: '大輪碼頭夜市', mapLinks: { amap: geoAmap('大轮码头夜市') } },
         ],
+        alert: '備選：鷺江夜遊（¥80/人，夜景超美，建議提前訂票）',
       },
     ],
   },
   {
     date: '7/12 (日)',
-    title: '海邊放鬆日',
-    subtitle: '環島路 / 黃厝沙灘 / 海邊咖啡',
+    title: '環島路海邊線',
+    subtitle: '胡里山炮台 / 環島路 / 曾厝垵 / 黃厝沙灘',
     sections: [
       {
         timeline: [
-          { time: '全日', label: '環島路騎行或散步', mapLinks: { amap: geoAmap('环岛路') } },
-          { time: '午後', label: '黃厝沙灘曬太陽、玩水', mapLinks: { amap: geoAmap('黄厝海滨浴场') } },
-          { time: '傍晚', label: '海邊咖啡廳放鬆' },
+          { time: '上午', label: '胡里山炮台（世界最大古炮）', mapLinks: { amap: geoAmap('胡里山炮台') } },
+          { time: '上午', label: '環島路騎行或散步', mapLinks: { amap: geoAmap('环岛路') } },
+          { time: '中午', label: '曾厝垵文創漁村、小吃午餐', mapLinks: { amap: geoAmap('曾厝垵文创渔村') } },
+          { time: '下午', label: '文曾路咖啡街休息', mapLinks: { amap: geoAmap('文曾路咖啡街') } },
+          { time: '傍晚', label: '黃厝沙灘看夕陽、拍照', mapLinks: { amap: geoAmap('黄厝海滨浴场') } },
         ],
+        alert: '⚠️ 7月注意防曬，水母季不建議游泳，以拍照為主',
       },
     ],
   },
   {
     date: '7/13 (一)',
-    title: '伴手禮 + 按摩',
-    subtitle: '採購 + 手佳健康會所',
+    title: '伴手禮 + 補件 + 按摩',
+    subtitle: '第八市場 / 補辦銀行 / 手佳按摩',
     sections: [
       {
-        heading: '伴手禮採購',
-        items: [
-          '上午逛市場或特產店',
-          '買茶葉、糕餅、乾貨等',
-        ],
+        heading: '上午：伴手禮採購',
         timeline: [
-          { time: '上午', label: '逛市場或特產店', mapLinks: { amap: geoAmap('中山路步行街') } },
-          { time: '下午', label: '手佳健康會所按摩', mapLinks: { amap: geoAmap('手佳按摩 松柏') } },
+          { time: '早上', label: '第八市場（八市）→ 海鮮乾貨茶葉', mapLinks: { amap: geoAmap('厦门第八市场') }, detail: '早上越早去越新鮮，中午後攤位收攤' },
+          { time: '上午', label: '火車站商圈或特產店', mapLinks: { amap: geoAmap('厦门火车站商圈') }, detail: '地下商場超便宜，買衣服鞋子首選' },
+        ],
+      },
+      {
+        heading: '下午：補件 + 按摩',
+        timeline: [
+          { time: '下午', label: '銀行補件（若 7/10 未完成）' },
+          { time: '下午/晚上', label: '手佳健康會所・松柏港龍店', mapLinks: { amap: geoAmap('手佳按摩 松柏') } },
         ],
       },
       {
@@ -392,9 +415,9 @@ export const itinerary: DayPlan[] = [
           '預算：每人 RMB 300–450',
           '套餐：80–100 分鐘全身/香薰/油壓按摩',
           '含洗澡、餐飲/自助餐、休息區',
-          '按摩完回飯店睡，不要直接當住宿',
+          '可作為最後一晚過夜備案（見按摩說明）',
         ],
-        alert: '建議提前預約',
+        alert: '建議提前電話預約，務必確認預約前必問清單',
       },
     ],
   },
@@ -528,18 +551,84 @@ export const massagePlan: MassagePlan = {
     '建議提前一天電話預約',
     '含洗澡設施',
     '含餐飲/自助餐',
-    '按摩完可休息，但不要過夜',
-    '按摩完回飯店睡',
+    '可作為最後一晚過夜備案（節省一晚住宿費）',
+    '按摩完可休息，若重視睡眠品質建議保留飯店',
   ],
   beforeBooking: [
     '確認可用台灣手機號預約',
     '確認套餐價格與時長（是否含自助餐）',
+    '確認是否可過夜、餐飲供應時間、最低消費門檻',
     '確認是否需要自備衣物',
     '確認支付方式（現金/微信/支付寶）',
     '確認營業時間（通常到凌晨）',
+    '隔天前往五通碼頭需預留 40–60 分鐘',
   ],
   mapLinks: { amap: geoAmap('手佳按摩 松柏') },
 };
+
+// ----- BANK INFO -----
+export interface BankInfo {
+  name: string;
+  purpose: string;
+  tips: string;
+  warning?: string;
+  mapLinks?: MapLinks;
+}
+
+export const bankProcedure = {
+  steps: [
+    '1. 先辦中國手機門號',
+    '2. 再辦銀行',
+    '3. 現場開通手機銀行',
+    '4. 綁定支付寶與微信',
+    '5. 測試小額支付、ATM 查詢、簡訊驗證',
+  ],
+  requireDocs: [
+    '台胞證',
+    '台灣身分證',
+    '護照（備用）',
+    '中國手機號',
+    '入境紀錄或船票',
+    '飯店地址',
+    '台灣地址',
+    '開戶用途說明',
+  ],
+  usageGuide: [
+    '你恢復帳戶：優先找原開戶銀行，其次廈門銀行或中國建設銀行',
+    '妹妹新戶：廈門銀行或中國建設銀行優先',
+    '匯款回台灣：中國銀行優先詢問',
+    '台資溝通與跨境諮詢：富邦華一銀行作為備選',
+  ],
+};
+
+export const banks: BankInfo[] = [
+  {
+    name: '廈門銀行',
+    purpose: '台胞服務、新戶開戶、恢復帳戶、支付綁定',
+    tips: '可能較熟悉小三通台胞需求',
+    mapLinks: { amap: geoAmap('厦门银行') },
+  },
+  {
+    name: '中國建設銀行',
+    purpose: '日常支付、手機銀行、ATM、支付寶微信綁定',
+    tips: '生活便利性高，新戶開戶需清楚說明用途',
+    mapLinks: { amap: geoAmap('中国建设银行厦门') },
+  },
+  {
+    name: '中國銀行',
+    purpose: '跨境匯款、外匯、匯回台灣諮詢',
+    tips: '審核可能較嚴，建議詢問限額與手續費',
+    warning: '可能需要較多文件，預留時間',
+    mapLinks: { amap: geoAmap('中国银行厦门') },
+  },
+  {
+    name: '富邦華一銀行',
+    purpose: '台資背景、跨境金融諮詢、台灣人溝通',
+    tips: '分行少，生活便利性可能不如大型陸銀',
+    warning: '營業時間較短，需提前確認',
+    mapLinks: { amap: geoAmap('富邦华一银行厦门') },
+  },
+];
 
 // ----- SIM & PAYMENT -----
 export const simTasks: SimTask[] = [

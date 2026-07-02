@@ -24,6 +24,7 @@ import PlaceCard from './components/PlaceCard';
 import MassagePlan from './components/MassagePlan';
 import BottomNav from './components/BottomNav';
 import MapView from './components/MapView';
+import { bankProcedure, banks } from './data/trip';
 
 const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist', 'map'];
 
@@ -484,6 +485,64 @@ export default function App() {
         <div className="space-y-4">
           {simTasks.map((task) => (
             <TaskCard key={task.id} task={task} />
+          ))}
+        </div>
+      </Section>
+
+      {/* Bank Section */}
+      <Section id="bank" title="銀行辦事" icon="🏦" subtitle="開戶建議與銀行資訊">
+        {/* Procedure */}
+        <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50">
+          <h3 className="text-sm font-semibold text-navy mb-3">📋 辦理順序</h3>
+          <div className="space-y-1.5 mb-4">
+            {bankProcedure.steps.map((s, i) => (
+              <p key={i} className="text-sm text-warm-gray flex items-start gap-2">
+                <span className="text-ocean shrink-0">{i + 1}.</span>
+                {s.replace(/^\d+\.\s*/, '')}
+              </p>
+            ))}
+          </div>
+          <h3 className="text-sm font-semibold text-navy mb-2">📄 需要準備</h3>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {bankProcedure.requireDocs.map((d, i) => (
+              <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-ocean/10 text-ocean">{d}</span>
+            ))}
+          </div>
+          <h3 className="text-sm font-semibold text-navy mb-2">💡 銀行用途建議</h3>
+          <div className="space-y-1.5">
+            {bankProcedure.usageGuide.map((g, i) => (
+              <p key={i} className="text-xs text-warm-gray flex items-start gap-1.5">
+                <span className="text-gold shrink-0">•</span>
+                {g}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        {/* Bank cards */}
+        <div className="space-y-3">
+          {banks.map((bank, i) => (
+            <div key={i} className="bg-soft-white rounded-card shadow-card p-4 border border-sand/50">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-navy">🏦 {bank.name}</h3>
+                {bank.mapLinks?.amap && (
+                  <a href={bank.mapLinks.amap} target="_blank" rel="noopener noreferrer"
+                    className="text-xs px-2.5 py-1 rounded-full bg-ocean/10 text-ocean font-medium hover:bg-ocean/20">
+                    🗺️ 高德地圖
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-warm-gray mb-1"><span className="text-gold">用途：</span>{bank.purpose}</p>
+              <p className="text-xs text-ocean flex items-start gap-1 mb-1">
+                <span>💡</span>
+                {bank.tips}
+              </p>
+              {bank.warning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
+                  <p className="text-xs text-amber-800">⚠️ {bank.warning}</p>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </Section>
