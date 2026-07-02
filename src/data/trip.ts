@@ -568,4 +568,5 @@ export const navSections = [
   { id: 'transport', label: '交通', icon: '✈️' },
   { id: 'sim', label: '辦卡', icon: '📱' },
   { id: 'checklist', label: '清單', icon: '✅' },
+  { id: 'map', label: '地圖', icon: '🗺️' },
 ];

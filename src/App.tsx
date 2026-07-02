@@ -23,8 +23,9 @@ import TaskCard from './components/TaskCard';
 import PlaceCard from './components/PlaceCard';
 import MassagePlan from './components/MassagePlan';
 import BottomNav from './components/BottomNav';
+import MapView from './components/MapView';
 
-const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist'];
+const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist', 'map'];
 
 const CUSTOM_KEY = 'custom-itinerary';
 const HIDDEN_KEY = 'hidden-itinerary';
@@ -459,6 +460,11 @@ export default function App() {
           <p className="text-xs text-warm-gray mb-1">• 旅外國人急難救助電話（24h）：<a href="tel:+886800085095" className="text-ocean font-medium underline">+886-800-085-095</a></p>
           <p className="text-xs text-warm-gray">• 中國報警 110 / 急救 120 / 火警 119</p>
         </div>
+      </Section>
+
+      {/* Map Section */}
+      <Section id="map" title="景點地圖" icon="🗺️" subtitle="來自 Google Sheets 的互動地圖">
+        <MapView />
       </Section>
 
       <div className="h-4" />
