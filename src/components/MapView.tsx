@@ -32,7 +32,7 @@ const CATEGORY_ZH: Record<string, string> = {
   Transport: '交通', Bank: '銀行',
 };
 
-const ALL_DAYS = ['7/8', '7/9', '7/10', '7/11', '7/12', '7/13', '7/14'];
+const ALL_DAYS = ['7/8', '7/9', '7/10', '7/11', '7/12', '7/13', '7/14', '7/15'];
 const ALL_CATEGORIES = ['Landmark', 'Food', 'Mall', 'Cultural', 'Hotel', 'Wellness', 'Park', 'Religious', 'Transport', 'Bank'];
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1wM-brW_yG22bcphlBbvHyad98Br7YNVdPgkiXsLkV-c/export?format=csv';
 
@@ -45,6 +45,7 @@ function dayLabelToDate(label: string): string | null {
   if (/海邊放鬆/.test(l)) return '7/12';
   if (/採購按摩/.test(l)) return '7/13';
   if (/回程|回金門/.test(l)) return '7/14';
+  if (/回家|台南|返程/.test(l)) return '7/15';
   return null;
 }
 
@@ -155,7 +156,15 @@ export default function MapView() {
   };
 
   const filteredSpots = useMemo(() => spots.filter(s => {
-    if (selectedDay) { const m = dayLabelToDate(s.day_label); if (!m || m !== selectedDay) return false; }
+    if (selectedDay) {
+      const m = dayLabelToDate(s.day_label);
+      // 7/15 special: 尚義機場 & 台南機場 (Transport on departure day)
+      if (selectedDay === '7/15' && s.category === 'Transport' && (s.name.includes('尚義') || s.name.includes('台南'))) {
+        // matched
+      } else if (!m || m !== selectedDay) {
+        return false;
+      }
+    }
     if (selectedCategory && s.category !== selectedCategory) return false;
     return true;
   }), [spots, selectedDay, selectedCategory]);
