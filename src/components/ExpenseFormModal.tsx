@@ -13,6 +13,7 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<'TWD' | 'RMB'>('RMB');
   const [category, setCategory] = useState('');
+  const [payer, setPayer] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState<string>('');
@@ -41,11 +42,11 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
         category,
         amount: parseFloat(amount),
         currency,
+        payer: payer || undefined,
         note: note || undefined,
         photoBase64: photo || undefined,
         createdAt: new Date().toISOString(),
       });
-      setAmount(''); setCategory(''); setNote(''); setPhoto('');
       onSuccess();
       onClose();
     } catch {
@@ -101,6 +102,19 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
               <option key={c.key} value={c.key}>{c.icon} {c.label}</option>
             ))}
           </select>
+        </div>
+
+        {/* Payer */}
+        <div>
+          <label className="text-xs text-warm-gray block mb-1">付款人</label>
+          <div className="flex gap-1">
+            {['我', '妹妹', '一起'].map(p => (
+              <button key={p} onClick={() => setPayer(p === payer ? '' : p)}
+                className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${payer === p ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Date */}

@@ -4,6 +4,7 @@ export interface ExpenseRecord {
   category: string;
   amount: number;
   currency: 'TWD' | 'RMB';
+  payer?: string;
   note?: string;
   photoBase64?: string;
   createdAt: string;
@@ -54,6 +55,22 @@ export async function addExpense(record: ExpenseRecord): Promise<void> {
   }
 }
 
+export async function addExpenses(records: ExpenseRecord[]): Promise<void> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      records.forEach(r => store.put(r));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.error('addExpenses error:', e);
+    throw e;
+  }
+}
+
 export async function getAllExpenses(): Promise<ExpenseRecord[]> {
   try {
     const db = await getDB();
@@ -67,29 +84,6 @@ export async function getAllExpenses(): Promise<ExpenseRecord[]> {
   } catch (e) {
     console.error('getAllExpenses error:', e);
     return [];
-  }
-}
-
-export async function updateExpense(id: string, data: Partial<ExpenseRecord>): Promise<void> {
-  try {
-    const db = await getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const getReq = store.get(id);
-      getReq.onsuccess = () => {
-        const existing = getReq.result;
-        if (!existing) { reject(new Error('Expense not found')); return; }
-        const updated = { ...existing, ...data, id };
-        const putReq = store.put(updated);
-        putReq.onsuccess = () => resolve();
-        putReq.onerror = () => reject(putReq.error);
-      };
-      getReq.onerror = () => reject(getReq.error);
-    });
-  } catch (e) {
-    console.error('updateExpense error:', e);
-    throw e;
   }
 }
 
