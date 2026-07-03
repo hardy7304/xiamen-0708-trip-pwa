@@ -90,6 +90,7 @@ export default function MapView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDay, setSelectedDay] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
 
@@ -120,10 +121,11 @@ export default function MapView() {
 
   const filteredSpots = useMemo(() => {
     return allSpots.filter(s => {
-      if (!selectedDay) return true;
-      return s.days.includes(selectedDay);
+      if (selectedDay && !s.days.includes(selectedDay)) return false;
+      if (selectedCategory && s.category !== selectedCategory) return false;
+      return true;
     });
-  }, [allSpots, selectedDay]);
+  }, [allSpots, selectedDay, selectedCategory]);
 
   // Load sheets
   const loadSheetSpots = useCallback(async () => {
@@ -292,6 +294,13 @@ export default function MapView() {
           </div>
           {selectedDay && <div className="text-xs text-ocean font-medium">📍 {daySummary}</div>}
 
+          {/* Category filter */}
+          <div className="flex gap-1.5 items-center overflow-x-auto pb-1 -mx-1 px-1">
+            <span className="text-[10px] text-warm-gray shrink-0">分類：</span>
+            <button onClick={() => setSelectedCategory('')} className={`text-[11px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap transition-colors ${!selectedCategory ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>全部</button>
+            {CAT_OPTIONS.map(c => <button key={c} onClick={() => setSelectedCategory(c === selectedCategory ? '' : c)} className={`text-[11px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap transition-colors`} style={selectedCategory === c ? { backgroundColor: CAT_COLORS[c] || '#6b7280', color: '#fff' } : { backgroundColor: (CAT_COLORS[c] || '#6b7280') + '18', color: CAT_COLORS[c] || '#6b7280' }}>{CAT_ZH[c]?.slice(2)}</button>)}
+          </div>
+
           {/* Category legend */}
           <details className="bg-soft-white rounded-lg border border-sand/30">
             <summary className="p-2 text-[10px] text-warm-gray cursor-pointer list-none">🎨 圖例</summary>
@@ -301,8 +310,81 @@ export default function MapView() {
             </div>
           </details>
 
-          {/* Spot cards */}
+          {/* === PANORAMIC MAP OVERVIEW === */}
+          {(() => {
+            const names = filteredSpots.slice(0, 5).map(s => s.name);
+            const lastName = names.pop();
+            const preview = names.length > 0 ? `${names.join('、')}、${lastName}` : (lastName || '尚無地點');
+
+            // Build Google Maps URL
+            let gmapsUrl = '';
+            if (filteredSpots.length === 1) {
+              const s = filteredSpots[0];
+              gmapsUrl = s.googleMapsUrl || geoGoogle(s.address || s.name);
+            } else if (filteredSpots.length > 1) {
+              const first = filteredSpots[0];
+              const last = filteredSpots[filteredSpots.length - 1];
+              const middle = filteredSpots.slice(1, -1);
+              const origin = encodeURIComponent(first.address || first.name);
+              const dest = encodeURIComponent(last.address || last.name);
+              if (middle.length > 0) {
+                const wp = encodeURIComponent(middle.map(s => s.address || s.name).join('|'));
+                gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${wp}`;
+              } else {
+                gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
+              }
+            }
+
+            const amapUrl = filteredSpots.length > 0
+              ? geoAmap(filteredSpots[0].name)
+              : geoAmap('廈門五通碼頭');
+
+            const copyList = () => {
+              const text = filteredSpots.map(s => s.name).join('\n');
+              navigator.clipboard.writeText(text).catch(() => {});
+            };
+
+            return (
+              <div className="bg-ocean/5 border border-ocean/20 rounded-card p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🗺️</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-navy">全景地圖</h3>
+                    <p className="text-xs text-warm-gray">目前 {filteredSpots.length} 個地點</p>
+                  </div>
+                </div>
+                {filteredSpots.length > 0 && (
+                  <p className="text-[11px] text-warm-gray leading-relaxed">{preview}</p>
+                )}
+                <div className="flex gap-2 flex-wrap">
+                  {gmapsUrl && (
+                    <a href={gmapsUrl} target="_blank" rel="noopener"
+                      className="text-xs px-3 py-2 bg-gold text-navy rounded-lg font-medium hover:bg-gold-light transition-colors min-h-[40px] flex items-center gap-1">
+                      📍 在 Google Maps 查看
+                    </a>
+                  )}
+                  <a href={amapUrl} target="_blank" rel="noopener"
+                    className="text-xs px-3 py-2 bg-ocean text-white rounded-lg font-medium hover:bg-ocean/90 transition-colors min-h-[40px] flex items-center gap-1">
+                    🗺️ 在高德地圖查看
+                  </a>
+                  <button onClick={copyList}
+                    className="text-xs px-3 py-2 bg-soft-white border border-sand rounded-lg font-medium text-navy min-h-[40px]">
+                    📋 複製地點清單
+                  </button>
+                </div>
+                {filteredSpots.length > 8 && (
+                  <p className="text-[10px] text-warm-gray/60">點位較多，建議分段開啟地圖。</p>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* === LEAFLET MAP === */}
+          <div ref={mapContainerRef} className="w-full rounded-card overflow-hidden shadow-card border border-sand/50" style={{ height: 'clamp(350px, 55vh, 65vh)' }} />
+
+          {/* === SPOT LIST === */}
           <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-navy px-1">📍 地點清單</h3>
             {filteredSpots.map(spot => (
               <div key={spot.id} className="bg-soft-white rounded-card shadow-card p-3 border border-sand/50 flex items-start gap-2">
                 <span className="text-lg shrink-0 mt-0.5">{CAT_ZH[spot.category]?.split(' ')[0] || '📍'}</span>
@@ -335,9 +417,6 @@ export default function MapView() {
               </div>
             )}
           </div>
-
-          {/* Map */}
-          <div ref={mapContainerRef} className="w-full rounded-card overflow-hidden shadow-card border border-sand/50" style={{ height: 'clamp(350px, 55vh, 65vh)' }} />
         </>
       )}
 
