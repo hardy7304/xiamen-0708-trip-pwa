@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { emergencyContacts, emergencySteps, phraseCards } from '../data/emergency';
 import { geoGoogle } from '../data/trip';
 
+function loadEditable(key: string): Record<string, string> {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : {}; } catch { return {}; }
+}
+function saveEditable(key: string, data: Record<string, string>) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
@@ -10,7 +17,6 @@ function CopyButton({ text }: { text: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Fallback: select via textarea
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -30,6 +36,25 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function EmergencyTab() {
+  const [editables, setEditables] = useState<Record<string, string>>(() => loadEditable('em-edit'));
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState('');
+
+  const getVal = (ckey: string, fallback: string) => editables[ckey] || fallback;
+
+  const beginEdit = (ckey: string, cur: string) => {
+    setEditingField(ckey);
+    setEditVal(cur === '待填' || cur === '待確認' ? '' : cur);
+  };
+  const commitEdit = () => {
+    if (!editingField) return;
+    const val = editVal.trim() || '待填';
+    const next = { ...editables, [editingField]: val };
+    setEditables(next);
+    saveEditable('em-edit', next);
+    setEditingField(null);
+  };
+
   return (
     <div className="space-y-4">
       {/* Alert Banner */}
@@ -51,37 +76,65 @@ export default function EmergencyTab() {
       {/* Section 1: Contacts */}
       <div>
         <h3 className="text-sm font-semibold text-navy mb-3 flex items-center gap-1.5">📞 快速撥號 / 聯絡資訊</h3>
+        <p className="text-[10px] text-warm-gray/60 mb-2 -mt-1">點擊「待填」或「待確認」可直接輸入號碼，自動儲存</p>
         <div className="space-y-2">
-          {emergencyContacts.map((c, i) => (
-            <div key={i} className="bg-soft-white rounded-card shadow-card p-3 border border-sand/50 flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-navy">{c.name}</p>
-                {c.phone && c.phone !== '待確認' && c.phone !== '待填' && (
-                  <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`}
-                    className="text-xs text-ocean font-semibold underline">
-                    {c.phone}
+          {emergencyContacts.map((c, i) => {
+            const ckey = `${i}-${c.name}`;
+            const fallback = c.phone || '待填';
+            const val = getVal(ckey, fallback);
+            const isP = val === '待填' || val === '待確認' || !val;
+            const editing = editingField === ckey;
+            const display = isP ? fallback : val;
+            const isNonPhone = !c.isPhone;
+            return (
+              <div key={i} className="bg-soft-white rounded-card shadow-card p-3 border border-sand/50 flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-navy">{c.name}</p>
+                  {editing ? (
+                    <div className="flex gap-2 items-center mt-1">
+                      <input type="text" value={editVal} onChange={e => setEditVal(e.target.value)}
+                        placeholder="輸入..." className="flex-1 text-xs bg-cream rounded-lg px-3 py-2 border border-sand min-h-[36px]"
+                        autoFocus onKeyDown={e => e.key === 'Enter' && commitEdit()} />
+                      <button onClick={commitEdit} className="text-xs px-3 py-2 bg-ocean text-white rounded-lg font-medium shrink-0">儲存</button>
+                      <button onClick={() => setEditingField(null)} className="text-xs px-2 py-2 text-warm-gray shrink-0">取消</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {isP && !isNonPhone ? (
+                        <button onClick={() => beginEdit(ckey, display)}
+                          className="text-xs text-ocean/60 underline hover:text-ocean">
+                          {display} — 點擊輸入
+                        </button>
+                      ) : isP && isNonPhone ? (
+                        <button onClick={() => beginEdit(ckey, display)}
+                          className="text-xs text-ocean/60 underline hover:text-ocean">
+                          {display} — 點擊輸入
+                        </button>
+                      ) : !isNonPhone ? (
+                        <a href={`tel:${display.replace(/[^+\d]/g, '')}`} className="text-xs text-ocean font-semibold underline">{display}</a>
+                      ) : (
+                        <span className="text-xs text-navy">{display}</span>
+                      )}
+                      <button onClick={() => beginEdit(ckey, val)} className="text-[10px] text-warm-gray/40 hover:text-ocean ml-1">✏️</button>
+                    </div>
+                  )}
+                  {c.note && <p className="text-[10px] text-warm-gray/60 mt-0.5">{c.note}</p>}
+                  {c.address && (
+                    <div className="flex gap-1 mt-0.5">
+                      <span className="text-[10px] text-warm-gray/60">{c.address}</span>
+                      <a href={geoGoogle(c.address)} target="_blank" rel="noopener noreferrer" className="text-[10px] text-ocean underline">📍 地圖</a>
+                    </div>
+                  )}
+                </div>
+                {!isP && !editing && c.isPhone && (
+                  <a href={`tel:${display.replace(/[^+\d]/g, '')}`}
+                    className="text-xs px-3 py-2 bg-ocean text-white rounded-xl font-medium shrink-0 hover:bg-ocean/90 transition-colors min-h-[36px] flex items-center">
+                    📞 撥打
                   </a>
                 )}
-                {c.phone && (c.phone === '待確認' || c.phone === '待填') && (
-                  <span className="text-xs text-warm-gray/50 italic">{c.phone}</span>
-                )}
-                {c.note && <p className="text-[10px] text-warm-gray/60 mt-0.5">{c.note}</p>}
-                {c.address && (
-                  <div className="flex gap-1 mt-0.5">
-                    <span className="text-[10px] text-warm-gray/60">{c.address}</span>
-                    <a href={geoGoogle(c.address)} target="_blank" rel="noopener noreferrer"
-                      className="text-[10px] text-ocean underline">📍 地圖</a>
-                  </div>
-                )}
               </div>
-              {c.phone && c.phone !== '待確認' && c.phone !== '待填' && (
-                <a href={`tel:${c.phone.replace(/[^+\d]/g, '')}`}
-                  className="text-xs px-3 py-2 bg-ocean text-white rounded-xl font-medium shrink-0 hover:bg-ocean/90 transition-colors min-h-[36px] flex items-center">
-                  📞 撥打
-                </a>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
