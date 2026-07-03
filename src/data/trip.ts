@@ -310,6 +310,21 @@ export const itinerary: DayPlan[] = [
         ],
       },
       {
+        heading: '📋 辦卡必備證件',
+        items: [
+          '必帶：✅ 台胞證（有效期內，最重要，缺此無法辦理）',
+          '必帶：✅ 護照（備用核對）',
+          '必帶：✅ 台灣身分證（備用核對）',
+        ],
+        timeline: [
+          { time: '輔助', label: '台灣手機（收驗證碼用）' },
+          { time: '輔助', label: '現金人民幣（現場繳費備用）' },
+          { time: '輔助', label: '已解鎖手機' },
+          { time: '輔助', label: '取卡針' },
+        ],
+        alert: '⚠️ 必須本人親自辦理，需配合人像核對。避免只用手機拍照顯示證件，需出示實體證件。台胞證號碼建議與訂房、訂票使用同一組。',
+      },
+      {
         heading: '📱 手機卡辦理提醒',
         items: [
           '台胞證實名',
@@ -506,6 +521,18 @@ export const itinerary: DayPlan[] = [
 
 // ----- CHECKLISTS -----
 export const checklists: ChecklistCategory[] = [
+  {
+    id: 'sim-docs',
+    title: '證件檢查（辦手機卡用）',
+    items: [
+      { id: 'simdoc-1', label: '台胞證是否在有效期內（建議剩餘 \u003E 3 個月）' },
+      { id: 'simdoc-2', label: '台胞證是否為卡式最新版（非舊式本子）' },
+      { id: 'simdoc-3', label: '護照是否隨身（備用核對）' },
+      { id: 'simdoc-4', label: '台灣身分證是否隨身（備用核對）' },
+      { id: 'simdoc-5', label: '手機是否已解鎖，可插任意 SIM 卡' },
+      { id: 'simdoc-6', label: '台胞證放在隨身包易拿取處，不要放托運行李' },
+    ],
+  },
   {
     id: 'pre-trip',
     title: '出發前準備',
