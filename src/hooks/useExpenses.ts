@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAllExpenses, addExpense, deleteExpense, addExpenses, type ExpenseRecord } from '../utils/expenseDB';
+import { getAllExpenses, addExpense, putExpense, deleteExpense, addExpenses, type ExpenseRecord } from '../utils/expenseDB';
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load from IndexedDB, then try syncing from KV
   useEffect(() => {
     getAllExpenses().then(data => {
       setExpenses(data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
@@ -14,13 +13,11 @@ export function useExpenses() {
     }).finally(() => setLoading(false));
   }, []);
 
-  // Sync from KV on mount and push local to KV
   useEffect(() => {
     fetch('/api/expenses')
       .then(r => r.json())
       .then((data: { expenses?: ExpenseRecord[] }) => {
         if (data.expenses && data.expenses.length > 0) {
-          // Merge KV records into local DB
           addExpenses(data.expenses).then(() => {
             return getAllExpenses();
           }).then(all => {
@@ -44,20 +41,22 @@ export function useExpenses() {
       await addExpense(record);
       setExpenses(prev => [record, ...prev].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
       pushToKV([record]);
-    } catch (e) {
-      console.error('add expense error:', e);
-      throw e;
-    }
+    } catch (e) { console.error('add expense error:', e); throw e; }
+  }, [pushToKV]);
+
+  const edit = useCallback(async (record: ExpenseRecord) => {
+    try {
+      await putExpense(record);
+      setExpenses(prev => prev.map(e => e.id === record.id ? record : e).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      pushToKV([record]);
+    } catch (e) { console.error('edit expense error:', e); throw e; }
   }, [pushToKV]);
 
   const remove = useCallback(async (id: string) => {
     try {
       await deleteExpense(id);
       setExpenses(prev => prev.filter(e => e.id !== id));
-    } catch (e) {
-      console.error('remove expense error:', e);
-      throw e;
-    }
+    } catch (e) { console.error('remove expense error:', e); throw e; }
   }, []);
 
   const getTotalByCategory = useCallback((category: string) => {
@@ -68,5 +67,5 @@ export function useExpenses() {
     };
   }, [expenses]);
 
-  return { expenses, addExpense: add, removeExpense: remove, getTotalByCategory, loading };
+  return { expenses, addExpense: add, editExpense: edit, removeExpense: remove, getTotalByCategory, loading };
 }

@@ -6,17 +6,21 @@ import { compressImage } from '../utils/imageCompress';
 interface ExpenseFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  initialExpense?: ExpenseRecord;
 }
 
-export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModalProps) {
-  const { addExpense } = useExpenses();
-  const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState<'TWD' | 'RMB'>('RMB');
-  const [category, setCategory] = useState('');
-  const [payer, setPayer] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [note, setNote] = useState('');
-  const [photo, setPhoto] = useState<string>('');
+import type { ExpenseRecord } from '../utils/expenseDB';
+
+export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }: ExpenseFormModalProps) {
+  const { addExpense, editExpense } = useExpenses();
+  const isEdit = !!initialExpense;
+  const [amount, setAmount] = useState(initialExpense ? String(initialExpense.amount) : '');
+  const [currency, setCurrency] = useState<'TWD' | 'RMB'>(initialExpense?.currency || 'RMB');
+  const [category, setCategory] = useState(initialExpense?.category || '');
+  const [payer, setPayer] = useState(initialExpense?.payer || '');
+  const [date, setDate] = useState(initialExpense?.date || (() => new Date().toISOString().slice(0, 10)));
+  const [note, setNote] = useState(initialExpense?.note || '');
+  const [photo, setPhoto] = useState<string>(initialExpense?.photoBase64 || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,8 +40,8 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
     setSubmitting(true);
     setError('');
     try {
-      await addExpense({
-        id: `exp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      const record: ExpenseRecord = {
+        id: initialExpense?.id || `exp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         date,
         category,
         amount: parseFloat(amount),
@@ -45,8 +49,13 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
         payer: payer || undefined,
         note: note || undefined,
         photoBase64: photo || undefined,
-        createdAt: new Date().toISOString(),
-      });
+        createdAt: initialExpense?.createdAt || new Date().toISOString(),
+      };
+      if (isEdit) {
+        await editExpense(record);
+      } else {
+        await addExpense(record);
+      }
       onSuccess();
       onClose();
     } catch {
@@ -59,7 +68,7 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
     <div className="fixed inset-0 z-[65] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div className="bg-soft-white w-full max-w-lg rounded-t-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-navy">記帳</h3>
+        <h3 className="text-sm font-semibold text-navy">{isEdit ? '編輯支出' : '記帳'}</h3>
           <button onClick={onClose} className="text-warm-gray text-lg">✕</button>
         </div>
 
@@ -135,7 +144,7 @@ export default function ExpenseFormModal({ onClose, onSuccess }: ExpenseFormModa
 
         <button onClick={handleSubmit} disabled={submitting}
           className="w-full text-sm py-3 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 disabled:opacity-60 min-h-[44px]">
-          {submitting ? '記錄中...' : '✅ 記錄支出'}
+          {submitting ? '處理中...' : isEdit ? '✅ 更新支出' : '✅ 記錄支出'}
         </button>
       </div>
     </div>

@@ -35,9 +35,7 @@ function getDB(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
-export async function initDB(): Promise<IDBDatabase> {
-  return getDB();
-}
+export async function initDB(): Promise<IDBDatabase> { return getDB(); }
 
 export async function addExpense(record: ExpenseRecord): Promise<void> {
   try {
@@ -49,10 +47,20 @@ export async function addExpense(record: ExpenseRecord): Promise<void> {
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
-  } catch (e) {
-    console.error('addExpense error:', e);
-    throw e;
-  }
+  } catch (e) { console.error('addExpense error:', e); throw e; }
+}
+
+export async function putExpense(record: ExpenseRecord): Promise<void> {
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { console.error('putExpense error:', e); throw e; }
 }
 
 export async function addExpenses(records: ExpenseRecord[]): Promise<void> {
@@ -65,10 +73,7 @@ export async function addExpenses(records: ExpenseRecord[]): Promise<void> {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
-  } catch (e) {
-    console.error('addExpenses error:', e);
-    throw e;
-  }
+  } catch (e) { console.error('addExpenses error:', e); throw e; }
 }
 
 export async function getAllExpenses(): Promise<ExpenseRecord[]> {
@@ -81,10 +86,7 @@ export async function getAllExpenses(): Promise<ExpenseRecord[]> {
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => reject(req.error);
     });
-  } catch (e) {
-    console.error('getAllExpenses error:', e);
-    return [];
-  }
+  } catch (e) { console.error('getAllExpenses error:', e); return []; }
 }
 
 export async function deleteExpense(id: string): Promise<void> {
@@ -97,8 +99,5 @@ export async function deleteExpense(id: string): Promise<void> {
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
-  } catch (e) {
-    console.error('deleteExpense error:', e);
-    throw e;
-  }
+  } catch (e) { console.error('deleteExpense error:', e); throw e; }
 }
