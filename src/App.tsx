@@ -25,9 +25,10 @@ import MassagePlan from './components/MassagePlan';
 import BottomNav from './components/BottomNav';
 import MapView from './components/MapView';
 import BudgetOverview from './components/BudgetOverview';
+import EmergencyTab from './components/EmergencyTab';
 import { bankProcedure, banks } from './data/trip';
 
-const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist', 'map', 'budget'];
+const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist', 'map', 'budget', 'emergency'];
 
 const CUSTOM_KEY = 'custom-itinerary';
 const HIDDEN_KEY = 'hidden-itinerary';
@@ -636,6 +637,11 @@ export default function App() {
       {/* Budget Section */}
       <Section id="budget" title="預算總覽" icon="💰" subtitle="記錄旅程花費">
         <BudgetOverview />
+      </Section>
+
+      {/* Emergency Section */}
+      <Section id="emergency" title="緊急應變" icon="🆘" subtitle="緊急聯絡與應變資訊">
+        <EmergencyTab />
       </Section>
 
       <div className="h-4" />
