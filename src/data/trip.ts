@@ -772,4 +772,5 @@ export const navSections = [
   { id: 'sim', label: '辦卡', icon: '📱' },
   { id: 'checklist', label: '清單', icon: '✅' },
   { id: 'map', label: '地圖', icon: '🗺️' },
+  { id: 'budget', label: '預算', icon: '💰' },
 ];

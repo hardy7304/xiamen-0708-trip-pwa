@@ -24,9 +24,10 @@ import PlaceCard from './components/PlaceCard';
 import MassagePlan from './components/MassagePlan';
 import BottomNav from './components/BottomNav';
 import MapView from './components/MapView';
+import BudgetOverview from './components/BudgetOverview';
 import { bankProcedure, banks } from './data/trip';
 
-const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist', 'map'];
+const SECTION_IDS = ['overview', 'today', 'transport', 'sim', 'checklist', 'map', 'budget'];
 
 const CUSTOM_KEY = 'custom-itinerary';
 const HIDDEN_KEY = 'hidden-itinerary';
@@ -630,6 +631,11 @@ export default function App() {
       {/* Map Section */}
       <Section id="map" title="景點地圖" icon="🗺️" subtitle="來自 Google Sheets 的互動地圖">
         <MapView />
+      </Section>
+
+      {/* Budget Section */}
+      <Section id="budget" title="預算總覽" icon="💰" subtitle="記錄旅程花費">
+        <BudgetOverview />
       </Section>
 
       <div className="h-4" />
