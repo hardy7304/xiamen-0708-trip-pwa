@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { budgetCategories, PAYERS, EXPENSE_FOR_OPTIONS, PAYMENT_METHODS } from '../data/budget';
+import { budgetCategories, PAYMENT_METHODS } from '../data/budget';
 import { getPin } from '../utils/pin';
 import type { ExpenseRecord } from '../utils/expenseDB';
 
@@ -8,14 +8,12 @@ interface ExpenseListProps {
   onRemove: (id: string) => Promise<void>;
   onEdit: (e: ExpenseRecord) => void;
   onToast: (msg: string) => void;
+  onToggleSettle?: (e: ExpenseRecord) => void;
 }
 
 const CAT_ICON: Record<string, string> = {};
 budgetCategories.forEach(c => { CAT_ICON[c.key] = c.icon; });
-const PAYER_LABEL: Record<string, string> = {};
-PAYERS.forEach(p => { PAYER_LABEL[p.key] = p.label; });
-const FOR_LABEL: Record<string, string> = {};
-EXPENSE_FOR_OPTIONS.forEach(o => { FOR_LABEL[o.key] = o.label; });
+const PAYER_LABEL: Record<string, string> = { me: '嘉豪', yiting: '翊婷' };
 const METHOD_LABEL: Record<string, string> = {};
 PAYMENT_METHODS.forEach(m => { METHOD_LABEL[m.key] = m.label; });
 
@@ -25,7 +23,7 @@ function dateLabel(dateStr: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} (${weekdays[d.getDay()]})`;
 }
 
-export default function ExpenseList({ expenses, onRemove, onEdit, onToast }: ExpenseListProps) {
+export default function ExpenseList({ expenses, onRemove, onEdit, onToast, onToggleSettle }: ExpenseListProps) {
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [r2Blobs, setR2Blobs] = useState<Record<string, string>>({});
@@ -95,18 +93,33 @@ export default function ExpenseList({ expenses, onRemove, onEdit, onToast }: Exp
             </div>
             {day.expenses.map((e) => {
               const photoUrl = e.photoKey ? (r2Blobs[e.photoKey] || null) : (e.photoBase64 || null);
+              const sd = e.splitDetails || {};
+              const splitLabel = e.splitType === 'equal' ? '平均' : e.splitType === 'personal' ? '個人' : '自訂';
+              const splitSummary = e.expenseFor !== 'self' && Object.keys(sd).length > 0
+                ? Object.entries(sd).map(([k, v]) => `${PAYER_LABEL[k] || k}: ${e.currency === 'CNY' ? '¥' : 'NT$'}${v.toLocaleString()}`).join(', ')
+                : '';
               return (
-                <div key={e.id} className="bg-soft-white rounded-card shadow-card p-3 border border-sand/50 flex items-start gap-3">
+                <div key={e.id} className={`bg-soft-white rounded-card shadow-card p-3 border ${e.settled ? 'border-green-200 opacity-70' : 'border-sand/50'} flex items-start gap-3`}>
                   <span className="text-lg shrink-0 mt-0.5">{CAT_ICON[e.category] || '💰'}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-navy truncate">{budgetCategories.find(c => c.key === e.category)?.label || e.category}</p>
-                      <span className={`text-sm font-bold shrink-0 ${e.currency === 'CNY' ? 'text-coral' : 'text-ocean'}`}>{e.currency === 'TWD' ? 'NT$' : '¥'} {e.amount.toLocaleString()}</span>
+                      <p className="text-sm font-medium text-navy truncate">
+                        {e.settled && <span className="text-[10px] px-1 py-0.5 bg-green-100 text-green-700 rounded-full mr-1">✓</span>}
+                        {budgetCategories.find(c => c.key === e.category)?.label || e.category}
+                      </p>
+                      <span className={`text-sm font-bold shrink-0 ${e.currency === 'CNY' ? 'text-coral' : 'text-ocean'}`}>
+                        {e.currency === 'TWD' ? 'NT$' : '¥'} {e.amount.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold-light/40 text-gold font-medium">👤 {PAYER_LABEL[e.paidBy]} {FOR_LABEL[e.expenseFor]}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold-light/40 text-gold font-medium">
+                        👤 {PAYER_LABEL[e.paidBy]} 付 · {splitLabel}
+                      </span>
                       <span className="text-[10px] text-warm-gray/60">{METHOD_LABEL[e.paymentMethod]}</span>
                     </div>
+                    {splitSummary && (
+                      <p className="text-[10px] text-warm-gray mt-0.5">{splitSummary}</p>
+                    )}
                     {e.note && <p className="text-xs text-warm-gray mt-1">{e.note}</p>}
                     {photoUrl && <img src={photoUrl} alt="receipt" className="mt-1.5 rounded-lg max-h-20 cursor-pointer object-cover" onClick={() => setExpandedImage(photoUrl)} />}
                   </div>
@@ -119,6 +132,11 @@ export default function ExpenseList({ expenses, onRemove, onEdit, onToast }: Exp
                     ) : (
                       <div className="flex gap-1">
                         <button onClick={() => onEdit(e)} className="text-[10px] px-2 py-1 rounded-full bg-ocean/10 text-ocean hover:bg-ocean/20 min-h-[28px]" title="編輯">✏️</button>
+                        {onToggleSettle && (
+                          <button onClick={() => onToggleSettle(e)} className={`text-[10px] px-2 py-1 rounded-full min-h-[28px] ${e.settled ? 'bg-green-100 text-green-700' : 'bg-warm-gray/10 text-warm-gray hover:bg-green-50 hover:text-green-700'}`} title={e.settled ? '取消結清' : '標記結清'}>
+                            {e.settled ? '✓' : '💰'}
+                          </button>
+                        )}
                         <button onClick={() => setConfirmDelete(e.id)} className="text-[10px] px-2 py-1 rounded-full bg-warm-gray/10 text-warm-gray hover:bg-coral/10 hover:text-coral min-h-[28px]" title="刪除">🗑️</button>
                       </div>
                     )}

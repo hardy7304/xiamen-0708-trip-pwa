@@ -7,10 +7,28 @@ export interface ExpenseRecord {
   paidBy: 'me' | 'yiting';
   expenseFor: 'self' | 'shared' | 'yiting';
   paymentMethod: 'cash_cny' | 'wechat' | 'alipay' | 'credit_card' | 'cash_twd' | 'other';
+  splitType?: 'equal' | 'amount' | 'ratio' | 'personal';
+  splitDetails?: Record<string, number>; // person → owed amount
+  settled?: boolean;
   note?: string;
   photoBase64?: string;
   photoKey?: string;
   createdAt: string;
+}
+
+/** Normalize legacy records: if expenseFor is 'shared' and no splitDetails, treat as equal 50/50 */
+export function normalizeExpense(e: ExpenseRecord): ExpenseRecord {
+  if (!e.splitType) {
+    if (e.expenseFor === 'shared') {
+      return { ...e, splitType: 'equal', splitDetails: { me: e.amount / 2, yiting: e.amount / 2 } };
+    } else if (e.expenseFor === 'self') {
+      return { ...e, splitType: 'personal', splitDetails: { me: e.amount } };
+    } else if (e.expenseFor === 'yiting') {
+      return { ...e, splitType: 'personal', splitDetails: { yiting: e.amount } };
+    }
+    return { ...e, splitType: 'personal', splitDetails: { [e.paidBy]: e.amount } };
+  }
+  return e;
 }
 
 const DB_NAME = 'xiamen-trip-db';
