@@ -44,7 +44,7 @@ export async function onRequest(context) {
       }
 
       if (!env.SPOTS_KV) {
-        return new Response(JSON.stringify({ success: true, count: body.expenses.length, note: 'KV not bound' }), { status: 200, headers });
+        return new Response(JSON.stringify({ success: false, error: 'KV not bound — configure SPOTS_KV in Cloudflare Pages Functions settings', count: body.expenses.length }), { status: 500, headers });
       }
 
       const existing = await getAll(env.SPOTS_KV, KEY);

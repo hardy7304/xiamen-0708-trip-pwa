@@ -28,8 +28,14 @@ export default function BudgetOverview() {
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
   const [toast, setToast] = useState('');
+  const [pinReady, setPinReady] = useState(false);
+  const [pinEmpty, setPinEmpty] = useState(false);
 
-  useEffect(() => { ensurePin(); }, []);
+  useEffect(() => {
+    const pin = ensurePin();
+    setPinReady(true);
+    setPinEmpty(!pin);
+  }, []);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
   const isWechat = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
@@ -150,7 +156,18 @@ export default function BudgetOverview() {
         ))}
       </div>
 
-      <ExpenseList expenses={expenses} onRemove={removeExpense} onEdit={(e) => { setEditingExpense(e); setShowForm(true); }} onToast={showToast} />
+      {pinReady ? (
+        <ExpenseList expenses={expenses} onRemove={removeExpense} onEdit={(e) => { setEditingExpense(e); setShowForm(true); }} onToast={showToast} />
+      ) : (
+        <div className="bg-soft-white rounded-card shadow-card p-6 border border-sand/50 text-center">
+          <p className="text-sm text-warm-gray">🔒 正在準備...</p>
+        </div>
+      )}
+      {pinEmpty && (
+        <div className="bg-amber-50 border border-amber-200 rounded-card p-4 text-center">
+          <p className="text-xs text-amber-800">未輸入 PIN，收據圖片將無法從雲端載入</p>
+        </div>
+      )}
 
       <button onClick={() => { setEditingExpense(null); setShowForm(true); }}
         className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-ocean text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-ocean/90 transition-colors active:scale-95">＋</button>
