@@ -37,24 +37,29 @@ export function useExpenses() {
   }, [pullFromKV]);
 
   // Push to KV
-  const pushToKV = useCallback((records: ExpenseRecord[]) => {
-    fetch('/api/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-trip-pin': getPin() || '' },
-      body: JSON.stringify({ expenses: records }),
-    }).catch(() => {});
+  const pushToKV = useCallback(async (records: ExpenseRecord[]): Promise<boolean> => {
+    try {
+      const resp = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-trip-pin': getPin() || '' },
+        body: JSON.stringify({ expenses: records }),
+      });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      return data.success === true;
+    } catch { return false; }
   }, []);
 
-  const add = useCallback(async (record: ExpenseRecord) => {
+  const add = useCallback(async (record: ExpenseRecord): Promise<boolean> => {
     await addExpense(record);
     await loadLocal();
-    pushToKV([record]);
+    return await pushToKV([record]);
   }, [loadLocal, pushToKV]);
 
-  const edit = useCallback(async (record: ExpenseRecord) => {
+  const edit = useCallback(async (record: ExpenseRecord): Promise<boolean> => {
     await putExpense(record);
     await loadLocal();
-    pushToKV([record]);
+    return await pushToKV([record]);
   }, [loadLocal, pushToKV]);
 
   const remove = useCallback(async (id: string) => {

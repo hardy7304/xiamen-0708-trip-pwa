@@ -8,8 +8,8 @@ interface ExpenseFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
   initialExpense?: ExpenseRecord;
-  addExpense: (record: ExpenseRecord) => Promise<void>;
-  editExpense: (record: ExpenseRecord) => Promise<void>;
+  addExpense: (record: ExpenseRecord) => Promise<boolean>;
+  editExpense: (record: ExpenseRecord) => Promise<boolean>;
 }
 
 export default function ExpenseFormModal({ onClose, onSuccess, initialExpense, addExpense, editExpense }: ExpenseFormModalProps) {
@@ -66,8 +66,8 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense, a
         photoKey: photoKey || undefined,
         createdAt: initialExpense?.createdAt || new Date().toISOString(),
       };
-      if (isEdit) await editExpense(record);
-      else await addExpense(record);
+      const ok = isEdit ? await editExpense(record) : await addExpense(record);
+      if (!ok) setError('本機已儲存，但雲端同步失敗');
       onSuccess();
     } catch { setError('儲存失敗，請確認手機空間充足'); }
     setSubmitting(false);
