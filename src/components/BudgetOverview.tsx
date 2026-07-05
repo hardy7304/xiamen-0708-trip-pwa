@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { useExpenses } from '../hooks/useExpenses';
 import { useSettlements } from '../hooks/useSettlements';
+import { useBudgetSettings } from '../hooks/useBudgetSettings';
 import { DEFAULT_EXCHANGE_RATE } from '../data/budget';
 import { ensurePin } from '../utils/pin';
 import ExpenseFormModal from './ExpenseFormModal';
@@ -26,7 +27,8 @@ function fmtAmount(n: number): string {
 const PERSON_NAMES: Record<string, string> = { me: '嘉豪', yiting: '翊婷' };
 
 export default function BudgetOverview() {
-  const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget();
+  const { settings, updateTotal, updateCategory, resetToDefaults } = useBudgetSettings();
+  const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget(settings);
   const { expenses, addExpense, editExpense, removeExpense } = useExpenses();
   const { settlements, addSettlement, removeSettlement } = useSettlements();
   const [showForm, setShowForm] = useState(false);
@@ -34,12 +36,23 @@ export default function BudgetOverview() {
   const [toast, setToast] = useState('');
   const [pinReady, setPinReady] = useState(false);
   const [pinEmpty, setPinEmpty] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  // local copies for editing
+  const [editTotalTWD, setEditTotalTWD] = useState(settings.total.TWD);
+  const [editTotalRMB, setEditTotalRMB] = useState(settings.total.RMB);
+  const [editCategories, setEditCategories] = useState(settings.categories);
 
   useEffect(() => {
     const pin = ensurePin();
     setPinReady(true);
     setPinEmpty(!pin);
   }, []);
+
+  useEffect(() => {
+    setEditTotalTWD(settings.total.TWD);
+    setEditTotalRMB(settings.total.RMB);
+    setEditCategories(settings.categories);
+  }, [settings]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
   const isWechat = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
@@ -54,18 +67,13 @@ export default function BudgetOverview() {
     showToast('✅ 已記錄');
   };
 
-  // Toggle settled on individual expense
   const handleToggleSettle = async (e: ExpenseRecord) => {
     const updated = { ...e, settled: !e.settled };
     await editExpense(updated);
     showToast(e.settled ? '已取消結清' : '✅ 已標記結清');
   };
 
-  // Mark settlement recommendation as done — also mark related expenses as settled
-  // Current MVP marks expenses as settled directly.
-  // Future enhancement: create settlement history records with from/to/amount/expenseIds/settledAt.
   const handleMarkSettled = async (rec: { from: string; to: string; currency: 'CNY' | 'TWD'; amount: number }) => {
-    // Mark all unsettled shared expenses in this currency as settled
     for (const e of expenses) {
       if (e.settled) continue;
       if (e.currency !== rec.currency) continue;
@@ -85,20 +93,33 @@ export default function BudgetOverview() {
     showToast('✅ 已標記結清');
   };
 
-  // Helpers for the new balance structure
-  const getPaid = (person: string, currency: 'cny' | 'twd') => {
-    return settlement.paid[person]?.[currency] || 0;
-  };
-  const getOwed = (person: string, currency: 'cny' | 'twd') => {
-    return settlement.owed[person]?.[currency] || 0;
-  };
-  const getPersonal = (person: string, currency: 'cny' | 'twd') => {
-    return settlement.personal[person]?.[currency] || 0;
-  };
-  const getShared = (person: string, currency: 'cny' | 'twd') => {
-    return settlement.shared[person]?.[currency] || 0;
+  const handleSaveSettings = () => {
+    updateTotal('TWD', editTotalTWD);
+    updateTotal('RMB', editTotalRMB);
+    editCategories.forEach(c => {
+      updateCategory(c.id, { label: c.label, currency: c.currency, budget: c.budget, enabled: c.enabled });
+    });
+    setShowSettings(false);
+    showToast('✅ 預算設定已儲存');
   };
 
+  const handleCancelSettings = () => {
+    setEditTotalTWD(settings.total.TWD);
+    setEditTotalRMB(settings.total.RMB);
+    setEditCategories(settings.categories);
+    setShowSettings(false);
+  };
+
+  const handleResetSettings = () => {
+    resetToDefaults();
+    setShowSettings(false);
+    showToast('✅ 已重置為預設值');
+  };
+
+  const getPaid = (person: string, currency: 'cny' | 'twd') => settlement.paid[person]?.[currency] || 0;
+  const getOwed = (person: string, currency: 'cny' | 'twd') => settlement.owed[person]?.[currency] || 0;
+  const getPersonal = (person: string, currency: 'cny' | 'twd') => settlement.personal[person]?.[currency] || 0;
+  const getShared = (person: string, currency: 'cny' | 'twd') => settlement.shared[person]?.[currency] || 0;
   const persons = ['me', 'yiting'];
 
   return (
@@ -106,13 +127,11 @@ export default function BudgetOverview() {
       {toast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-navy text-cream px-4 py-2 rounded-full text-sm shadow-lg">{toast}</div>
       )}
-
       {isWechat && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
           ⚠️ 請點擊右上角「⋯」選擇「在瀏覽器中打開」以確保資料正常儲存
         </div>
       )}
-
       <details className="bg-ocean/5 border border-ocean/10 rounded-lg p-2.5">
         <summary className="text-xs text-ocean cursor-pointer list-none">💡 建議將此頁面加入手機主畫面，離線資料才不會被系統清除</summary>
         <div className="mt-2 text-xs text-warm-gray space-y-1">
@@ -123,7 +142,13 @@ export default function BudgetOverview() {
 
       {/* Summary Cards */}
       <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-4">
-        <h3 className="text-sm font-semibold text-navy">💰 總預算概覽</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-navy">💰 總預算概覽</h3>
+          <button onClick={() => setShowSettings(true)}
+            className="text-[10px] px-2.5 py-1.5 bg-ocean/10 text-ocean rounded-full font-medium hover:bg-ocean/20">
+            ⚙️ 設定預算
+          </button>
+        </div>
         <div>
           <div className="flex justify-between text-xs mb-1">
             <span className="text-warm-gray">台幣</span>
@@ -154,15 +179,82 @@ export default function BudgetOverview() {
         </div>
       </div>
 
+      {/* Budget Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40" onClick={handleCancelSettings}>
+          <div className="bg-soft-white w-full max-w-lg rounded-t-2xl p-5 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-navy">⚙️ 預算設定</h3>
+              <button onClick={handleCancelSettings} className="text-warm-gray text-lg">✕</button>
+            </div>
+            <p className="text-[10px] text-warm-gray/70">設定後立即更新總預算概覽。修改僅儲存在本機。</p>
+
+            {/* Total budgets */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-navy">總預算</h4>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] text-warm-gray block mb-0.5">台幣 TWD</label>
+                  <input type="number" value={editTotalTWD || ''} onChange={e => setEditTotalTWD(parseFloat(e.target.value) || 0)}
+                    className="w-full text-sm bg-cream rounded-lg px-3 py-2 border border-sand" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-warm-gray block mb-0.5">人民幣 RMB</label>
+                  <input type="number" value={editTotalRMB || ''} onChange={e => setEditTotalRMB(parseFloat(e.target.value) || 0)}
+                    className="w-full text-sm bg-cream rounded-lg px-3 py-2 border border-sand" />
+                </div>
+              </div>
+            </div>
+
+            {/* Category budgets */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-navy">分類預算</h4>
+              {editCategories.map((c, i) => (
+                <div key={c.id} className="flex items-center gap-2 bg-cream rounded-lg p-2">
+                  <span className="text-sm shrink-0">{c.icon}</span>
+                  <input type="text" value={c.label} onChange={e => {
+                    const next = [...editCategories];
+                    next[i] = { ...next[i], label: e.target.value };
+                    setEditCategories(next);
+                  }} className="flex-1 min-w-0 text-xs bg-soft-white rounded px-2 py-1.5 border border-sand" />
+                  <select value={c.currency} onChange={e => {
+                    const next = [...editCategories];
+                    next[i] = { ...next[i], currency: e.target.value as 'TWD' | 'RMB' };
+                    setEditCategories(next);
+                  }} className="text-[10px] bg-soft-white rounded px-1.5 py-1.5 border border-sand">
+                    <option value="TWD">NT$</option>
+                    <option value="RMB">¥</option>
+                  </select>
+                  <input type="number" value={c.budget || ''} onChange={e => {
+                    const next = [...editCategories];
+                    next[i] = { ...next[i], budget: parseFloat(e.target.value) || 0 };
+                    setEditCategories(next);
+                  }} className="w-16 text-xs bg-soft-white rounded px-2 py-1.5 border border-sand text-right" />
+                  <button onClick={() => {
+                    const next = [...editCategories];
+                    next[i] = { ...next[i], enabled: !c.enabled };
+                    setEditCategories(next);
+                  }} className={`text-[10px] w-6 h-6 rounded-full flex items-center justify-center ${c.enabled ? 'bg-ocean text-white' : 'bg-warm-gray/20 text-warm-gray'}`}>
+                    {c.enabled ? '✓' : '—'}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={handleSaveSettings} className="flex-1 text-sm py-2.5 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90">💾 儲存</button>
+              <button onClick={handleResetSettings} className="text-xs px-3 py-2.5 bg-coral/10 text-coral rounded-xl font-medium hover:bg-coral/20">🔄 重置預設</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Settlement Section */}
       <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-4">
         <h3 className="text-sm font-semibold text-navy">📊 分帳總覽</h3>
-
         {/* CNY Card */}
         <div className="bg-cream rounded-card p-4">
           <h4 className="text-xs font-semibold text-navy mb-3">🇨🇳 人民幣 (CNY)</h4>
-
-          {/* 消費統計 */}
           <div className="mb-3">
             <h5 className="text-[11px] font-semibold text-warm-gray mb-1.5 uppercase tracking-wide">消費統計</h5>
             <div className="space-y-1 text-xs">
@@ -170,19 +262,14 @@ export default function BudgetOverview() {
                 <span className="text-warm-gray/60">共同</span>
                 <span className="text-navy font-medium">¥{persons.reduce((s, p) => s + getShared(p, 'cny'), 0).toLocaleString()}</span>
               </div>
-              {persons.map(p => {
-                const pAmt = getPersonal(p, 'cny');
-                return (
-                  <div key={`personal-cny-${p}`} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
-                    <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
-                    <span className="text-navy font-medium">¥{pAmt.toLocaleString()}</span>
-                  </div>
-                );
-              })}
+              {persons.map(p => (
+                <div key={`personal-cny-${p}`} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                  <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
+                  <span className="text-navy font-medium">¥{getPersonal(p, 'cny').toLocaleString()}</span>
+                </div>
+              ))}
             </div>
           </div>
-
-          {/* 結算建議 */}
           <div>
             <h5 className="text-[11px] font-semibold text-warm-gray mb-1.5 uppercase tracking-wide">結算建議</h5>
             <div className="space-y-1 text-xs mb-2">
@@ -205,15 +292,10 @@ export default function BudgetOverview() {
             <p className="text-[10px] text-warm-gray/70 mb-2">個人消費會列入旅遊總支出，但不會要求對方分攤；只有共同消費或代付個人消費才會產生結算建議。</p>
             {settlement.recommendations.filter(r => r.currency === 'CNY').map((rec, i) => (
               <div key={i} className="flex items-center justify-between bg-soft-white rounded-lg p-2.5 mb-2">
-                <span className="text-xs font-medium text-coral">
-                  {PERSON_NAMES[rec.from]} → {PERSON_NAMES[rec.to]}
-                </span>
+                <span className="text-xs font-medium text-coral">{PERSON_NAMES[rec.from]} → {PERSON_NAMES[rec.to]}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-coral">¥ {rec.amount.toLocaleString()}</span>
-                  <button onClick={() => handleMarkSettled(rec)}
-                    className="text-[10px] px-2.5 py-1.5 bg-ocean text-white rounded-full font-medium hover:bg-ocean/90">
-                    ✅ 標記結清
-                  </button>
+                  <button onClick={() => handleMarkSettled(rec)} className="text-[10px] px-2.5 py-1.5 bg-ocean text-white rounded-full font-medium hover:bg-ocean/90">✅ 標記結清</button>
                 </div>
               </div>
             ))}
@@ -222,12 +304,9 @@ export default function BudgetOverview() {
             )}
           </div>
         </div>
-
         {/* TWD Card */}
         <div className="bg-cream rounded-card p-4">
           <h4 className="text-xs font-semibold text-navy mb-3">🇹🇼 台幣 (TWD)</h4>
-
-          {/* 消費統計 */}
           <div className="mb-3">
             <h5 className="text-[11px] font-semibold text-warm-gray mb-1.5 uppercase tracking-wide">消費統計</h5>
             <div className="space-y-1 text-xs">
@@ -235,19 +314,14 @@ export default function BudgetOverview() {
                 <span className="text-warm-gray/60">共同</span>
                 <span className="text-navy font-medium">NT${persons.reduce((s, p) => s + getShared(p, 'twd'), 0).toLocaleString()}</span>
               </div>
-              {persons.map(p => {
-                const pAmt = getPersonal(p, 'twd');
-                return (
-                  <div key={`personal-twd-${p}`} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
-                    <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
-                    <span className="text-navy font-medium">NT$ {pAmt.toLocaleString()}</span>
-                  </div>
-                );
-              })}
+              {persons.map(p => (
+                <div key={`personal-twd-${p}`} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                  <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
+                  <span className="text-navy font-medium">NT$ {getPersonal(p, 'twd').toLocaleString()}</span>
+                </div>
+              ))}
             </div>
           </div>
-
-          {/* 結算建議 */}
           <div>
             <h5 className="text-[11px] font-semibold text-warm-gray mb-1.5 uppercase tracking-wide">結算建議</h5>
             <div className="space-y-1 text-xs mb-2">
@@ -270,15 +344,10 @@ export default function BudgetOverview() {
             <p className="text-[10px] text-warm-gray/70 mb-2">個人消費會列入旅遊總支出，但不會要求對方分攤；只有共同消費或代付個人消費才會產生結算建議。</p>
             {settlement.recommendations.filter(r => r.currency === 'TWD').map((rec, i) => (
               <div key={i} className="flex items-center justify-between bg-soft-white rounded-lg p-2.5 mb-2">
-                <span className="text-xs font-medium text-coral">
-                  {PERSON_NAMES[rec.from]} → {PERSON_NAMES[rec.to]}
-                </span>
+                <span className="text-xs font-medium text-coral">{PERSON_NAMES[rec.from]} → {PERSON_NAMES[rec.to]}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-coral">NT$ {rec.amount.toLocaleString()}</span>
-                  <button onClick={() => handleMarkSettled(rec)}
-                    className="text-[10px] px-2.5 py-1.5 bg-ocean text-white rounded-full font-medium hover:bg-ocean/90">
-                    ✅ 標記結清
-                  </button>
+                  <button onClick={() => handleMarkSettled(rec)} className="text-[10px] px-2.5 py-1.5 bg-ocean text-white rounded-full font-medium hover:bg-ocean/90">✅ 標記結清</button>
                 </div>
               </div>
             ))}
@@ -287,8 +356,6 @@ export default function BudgetOverview() {
             )}
           </div>
         </div>
-
-        {/* Cash CNY remaining */}
         <div className="bg-soft-white rounded-lg p-3 text-center">
           <p className="text-xs text-warm-gray">💰 人民幣現金剩餘</p>
           <p className="text-lg font-bold text-coral">¥ {settlement.cashCnyRemaining.toLocaleString()}</p>
@@ -304,16 +371,11 @@ export default function BudgetOverview() {
               <div key={s.id} className="flex items-center justify-between bg-cream rounded-lg p-3">
                 <div className="text-xs">
                   <p className="font-medium text-navy">{s.from} → {s.to}</p>
-                  <p className="text-warm-gray/60">
-                    {new Date(s.createdAt).toLocaleDateString('zh-TW')} · {s.method || '現金'}
-                  </p>
+                  <p className="text-warm-gray/60">{new Date(s.createdAt).toLocaleDateString('zh-TW')} · {s.method || '現金'}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-bold ${s.currency === 'CNY' ? 'text-coral' : 'text-ocean'}`}>
-                    {s.currency === 'CNY' ? '¥' : 'NT$'} {s.amount.toLocaleString()}
-                  </span>
-                  <button onClick={() => removeSettlement(s.id)}
-                    className="text-[10px] px-2 py-1 rounded-full bg-coral/10 text-coral hover:bg-coral/20 min-h-[28px]">🗑️</button>
+                  <span className={`text-sm font-bold ${s.currency === 'CNY' ? 'text-coral' : 'text-ocean'}`}>{s.currency === 'CNY' ? '¥' : 'NT$'} {s.amount.toLocaleString()}</span>
+                  <button onClick={() => removeSettlement(s.id)} className="text-[10px] px-2 py-1 rounded-full bg-coral/10 text-coral hover:bg-coral/20 min-h-[28px]">🗑️</button>
                 </div>
               </div>
             ))}
@@ -331,7 +393,7 @@ export default function BudgetOverview() {
               <span className={`text-xs font-medium ${cat.percent > 100 ? 'text-coral' : 'text-ocean'}`}>{cat.percent.toFixed(0)}%</span>
             </div>
             <div className="text-xs text-warm-gray mb-2 space-y-0.5">
-              <div className="flex justify-between"><span>預算</span><span>{cat.twdMax > 0 && `NT$ ${cat.twdMin.toLocaleString()}–${cat.twdMax.toLocaleString()}`}{cat.twdMax > 0 && cat.cnyMax > 0 && ' + '}{cat.cnyMax > 0 && `¥ ${cat.cnyMin}–${cat.cnyMax}`}</span></div>
+              <div className="flex justify-between"><span>預算</span><span>{cat.currency === 'RMB' ? `¥ ${cat.budget.toLocaleString()}` : `NT$ ${cat.budget.toLocaleString()}`}</span></div>
               <div className="flex justify-between"><span>已花費</span><span>{cat.spentTwd > 0 && `NT$ ${cat.spentTwd.toLocaleString()}`}{cat.spentTwd > 0 && cat.spentCny > 0 && ' + '}{cat.spentCny > 0 && `¥ ${cat.spentCny.toLocaleString()}`}{cat.spentTwd === 0 && cat.spentCny === 0 && '—'}</span></div>
               <div className="flex justify-between"><span>剩餘</span><span className={cat.remaining < 0 ? 'text-coral font-medium' : 'text-ocean'}>{fmtAmount(cat.remaining)}</span></div>
             </div>
@@ -341,34 +403,16 @@ export default function BudgetOverview() {
       </div>
 
       {pinReady ? (
-        <ExpenseList
-          expenses={expenses}
-          onRemove={removeExpense}
-          onEdit={(e) => { setEditingExpense(e); setShowForm(true); }}
-          onToast={showToast}
-          onToggleSettle={handleToggleSettle}
-        />
+        <ExpenseList expenses={expenses} onRemove={removeExpense} onEdit={(e) => { setEditingExpense(e); setShowForm(true); }} onToast={showToast} onToggleSettle={handleToggleSettle} />
       ) : (
-        <div className="bg-soft-white rounded-card shadow-card p-6 border border-sand/50 text-center">
-          <p className="text-sm text-warm-gray">🔒 正在準備...</p>
-        </div>
+        <div className="bg-soft-white rounded-card shadow-card p-6 border border-sand/50 text-center"><p className="text-sm text-warm-gray">🔒 正在準備...</p></div>
       )}
       {pinEmpty && (
-        <div className="bg-amber-50 border border-amber-200 rounded-card p-4 text-center">
-          <p className="text-xs text-amber-800">未輸入 PIN，收據圖片將無法從雲端載入</p>
-        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-card p-4 text-center"><p className="text-xs text-amber-800">未輸入 PIN，收據圖片將無法從雲端載入</p></div>
       )}
-
-      <button onClick={() => { setEditingExpense(null); setShowForm(true); }}
-        className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-ocean text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-ocean/90 transition-colors active:scale-95">＋</button>
+      <button onClick={() => { setEditingExpense(null); setShowForm(true); }} className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-ocean text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-ocean/90 transition-colors active:scale-95">＋</button>
       {showForm && (
-        <ExpenseFormModal
-          onClose={() => { setShowForm(false); setEditingExpense(null); }}
-          onSuccess={handleFormSuccess}
-          initialExpense={editingExpense ?? undefined}
-          addExpense={addExpense}
-          editExpense={editExpense}
-        />
+        <ExpenseFormModal onClose={() => { setShowForm(false); setEditingExpense(null); }} onSuccess={handleFormSuccess} initialExpense={editingExpense ?? undefined} addExpense={addExpense} editExpense={editExpense} />
       )}
     </div>
   );

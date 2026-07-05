@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { budgetCategories, DEFAULT_EXCHANGE_RATE } from '../data/budget';
 import { useExpenses } from './useExpenses';
 import { normalizeExpense } from '../utils/expenseDB';
+import type { BudgetSettings } from '../data/budgetSettings';
 
 export interface SettlementSummary {
   balances: Record<string, { cny: number; twd: number }>; // person → {cny, twd} net balance (positive = should receive)
@@ -13,9 +14,23 @@ export interface SettlementSummary {
   cashCnyRemaining: number;
 }
 
+export interface CategoryDetail {
+  key: string;
+  label: string;
+  icon: string;
+  currency: 'TWD' | 'RMB';
+  budget: number;       // in native currency
+  spentTwd: number;
+  spentCny: number;
+  spentEquiv: number;
+  maxEquiv: number;     // budget in TWD equivalent
+  percent: number;
+  remaining: number;    // in TWD equivalent
+}
+
 function round(n: number): number { return Math.round(n * 100) / 100; }
 
-export function useBudget() {
+export function useBudget(settings?: BudgetSettings) {
   const { expenses: rawExpenses, getTotalByCategory } = useExpenses();
   const expenses = useMemo(() => rawExpenses.map(normalizeExpense), [rawExpenses]);
 
@@ -42,18 +57,49 @@ export function useBudget() {
     return { totalTwd, totalCny, totalTwdEquivalent };
   }, [expenses, exchangeRate]);
 
-  const budgetMaxTwd = useMemo(() => budgetCategories.reduce((s, c) => s + c.twdMax, 0), []);
-  const budgetMaxCny = useMemo(() => budgetCategories.reduce((s, c) => s + c.cnyMax, 0), []);
+  const budgetMaxTwd = settings ? settings.total.TWD : budgetCategories.reduce((s, c) => s + c.twdMax, 0);
+  const budgetMaxCny = settings ? settings.total.RMB : budgetCategories.reduce((s, c) => s + c.cnyMax, 0);
   const budgetMaxEquiv = budgetMaxTwd + budgetMaxCny * exchangeRate;
 
-  const categoryDetails = useMemo(() => {
+  const categoryDetails = useMemo((): CategoryDetail[] => {
+    if (settings) {
+      return settings.categories
+        .filter(c => c.enabled)
+        .map(c => {
+          const spent = getTotalByCategory(c.id);
+          const spentEquiv = spent.twd + spent.cny * exchangeRate;
+          const maxEquiv = c.currency === 'RMB' ? c.budget * exchangeRate : c.budget;
+          const percent = maxEquiv > 0 ? (spentEquiv / maxEquiv) * 100 : 0;
+          return {
+            key: c.id,
+            label: c.label,
+            icon: c.icon,
+            currency: c.currency,
+            budget: c.budget,
+            spentTwd: spent.twd,
+            spentCny: spent.cny,
+            spentEquiv,
+            maxEquiv,
+            percent,
+            remaining: maxEquiv - spentEquiv,
+          };
+        });
+    }
+    // fallback to hardcoded
     return budgetCategories.map(cat => {
       const spent = getTotalByCategory(cat.key);
-      const maxEquiv = cat.twdMax + cat.cnyMax * exchangeRate;
+      const isRmb = cat.cnyMax > 0;
+      const budget = isRmb ? cat.cnyMax : cat.twdMax;
+      const currency = isRmb ? 'RMB' as const : 'TWD' as const;
+      const maxEquiv = isRmb ? budget * exchangeRate : budget;
       const spentEquiv = spent.twd + spent.cny * exchangeRate;
       const percent = maxEquiv > 0 ? (spentEquiv / maxEquiv) * 100 : 0;
       return {
-        ...cat,
+        key: cat.key,
+        label: cat.label,
+        icon: cat.icon,
+        currency,
+        budget,
         spentTwd: spent.twd,
         spentCny: spent.cny,
         spentEquiv,
@@ -62,7 +108,7 @@ export function useBudget() {
         remaining: maxEquiv - spentEquiv,
       };
     });
-  }, [getTotalByCategory, exchangeRate]);
+  }, [getTotalByCategory, exchangeRate, settings]);
 
   // Settlement: per-person balance using splitDetails
   const settlement = useMemo((): SettlementSummary => {
@@ -81,18 +127,15 @@ export function useBudget() {
     });
 
     expenses.forEach(e => {
-      if (e.settled) return; // skip settled expenses
+      if (e.settled) return;
       const isCny = e.currency === 'CNY';
       const cur = isCny ? 'cny' as const : 'twd' as const;
       const amt = e.amount;
 
-      // paid
       if (paid[e.paidBy]) paid[e.paidBy][cur] = round(paid[e.paidBy][cur] + amt);
 
-      // owed via splitDetails
       const sd = e.splitDetails || {};
       if (e.expenseFor === 'self' || e.expenseFor === 'yiting' || e.splitType === 'personal') {
-        // Determine who this personal expense belongs to
         let target: string = 'me';
         if (e.expenseFor === 'yiting') {
           target = 'yiting';
@@ -105,20 +148,17 @@ export function useBudget() {
         if (owed[target]) owed[target][cur] = round(owed[target][cur] + amt);
         if (personal[target]) personal[target][cur] = round(personal[target][cur] + amt);
       } else {
-        // shared / equal / amount / ratio
         Object.entries(sd).forEach(([person, share]) => {
           if (owed[person]) owed[person][cur] = round(owed[person][cur] + share);
           if (shared[person]) shared[person][cur] = round(shared[person][cur] + share);
         });
       }
 
-      // Cash CNY remaining
       if (e.paidBy === 'me' && e.paymentMethod === 'cash_cny' && isCny) {
         cashCnyRemaining = round(cashCnyRemaining + amt);
       }
     });
 
-    // Balances: paid - owed (positive = should receive)
     const balances: Record<string, { cny: number; twd: number }> = {};
     persons.forEach(p => {
       balances[p] = {
@@ -127,11 +167,9 @@ export function useBudget() {
       };
     });
 
-    // Recommendations: for each currency, find net positive → net negative transfers
     const recommendations: { from: string; to: string; currency: 'CNY' | 'TWD'; amount: number }[] = [];
     (['cny', 'twd'] as const).forEach(cur => {
       const c = cur === 'cny' ? 'CNY' as const : 'TWD' as const;
-      // Find who should receive (positive balance) and who should pay (negative balance)
       const creditors = persons.filter(p => balances[p]?.[cur] > 0.01).sort((a, b) => (balances[b]?.[cur] || 0) - (balances[a]?.[cur] || 0));
       const debtors = persons.filter(p => balances[p]?.[cur] < -0.01).sort((a, b) => (balances[a]?.[cur] || 0) - (balances[b]?.[cur] || 0));
 
@@ -145,7 +183,6 @@ export function useBudget() {
 
         if (transfer > 0.01) {
           recommendations.push({ from: debtor, to: creditor, currency: c, amount: transfer });
-          // Simulate settlement
           if (balances[debtor]) balances[debtor][cur] = round((balances[debtor][cur] || 0) + transfer);
           if (balances[creditor]) balances[creditor][cur] = round((balances[creditor][cur] || 0) - transfer);
         }
