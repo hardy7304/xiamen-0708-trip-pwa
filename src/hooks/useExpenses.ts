@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAllExpenses, addExpense, putExpense, deleteExpense, addExpenses, type ExpenseRecord } from '../utils/expenseDB';
+import { getPin } from '../utils/pin';
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
@@ -31,7 +32,7 @@ export function useExpenses() {
   const pushToKV = useCallback((records: ExpenseRecord[]) => {
     fetch('/api/expenses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-trip-pin': getPin() || '' },
       body: JSON.stringify({ expenses: records }),
     }).catch(() => {});
   }, []);
@@ -63,7 +64,7 @@ export function useExpenses() {
     const filtered = expenses.filter(e => e.category === category);
     return {
       twd: filtered.filter(e => e.currency === 'TWD').reduce((s, e) => s + e.amount, 0),
-      rmb: filtered.filter(e => e.currency === 'RMB').reduce((s, e) => s + e.amount, 0),
+      cny: filtered.filter(e => e.currency === 'CNY').reduce((s, e) => s + e.amount, 0),
     };
   }, [expenses]);
 

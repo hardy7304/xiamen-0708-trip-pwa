@@ -18,22 +18,22 @@ function ProgressBar({ percent, className = '' }: { percent: number; className?:
 }
 
 function fmtAmount(n: number): string {
-  return n >= 1000 ? `NT$ ${n.toLocaleString()}` : `NT$ ${n}`;
+  if (Math.abs(n) < 1) return `NT$ 0`;
+  return `NT$ ${n.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
 }
 
 export default function BudgetOverview() {
-  const { budgets, totals, budgetMax, exchangeRate, setExchangeRate } = useBudget();
+  const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget();
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
-  // WeChat detection
   const isWechat = typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
 
   const totalPercent = budgetMax.equiv > 0 ? (totals.totalTwdEquivalent / budgetMax.equiv) * 100 : 0;
   const twdPercent = budgetMax.twd > 0 ? (totals.totalTwd / budgetMax.twd) * 100 : 0;
-  const rmbPercent = budgetMax.rmb > 0 ? (totals.totalRmb / budgetMax.rmb) * 100 : 0;
+  const cnyPercent = budgetMax.cny > 0 ? (totals.totalCny / budgetMax.cny) * 100 : 0;
 
   return (
     <div className="relative space-y-4">
@@ -42,14 +42,12 @@ export default function BudgetOverview() {
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-navy text-cream px-4 py-2 rounded-full text-sm shadow-lg">{toast}</div>
       )}
 
-      {/* WeChat warning */}
       {isWechat && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
           ⚠️ 請點擊右上角「⋯」選擇「在瀏覽器中打開」以確保資料正常儲存
         </div>
       )}
 
-      {/* PWA tip */}
       <details className="bg-ocean/5 border border-ocean/10 rounded-lg p-2.5">
         <summary className="text-xs text-ocean cursor-pointer list-none">💡 建議將此頁面加入手機主畫面，離線資料才不會被系統清除</summary>
         <div className="mt-2 text-xs text-warm-gray space-y-1">
@@ -73,21 +71,16 @@ export default function BudgetOverview() {
         <div>
           <div className="flex justify-between text-xs mb-1">
             <span className="text-warm-gray">人民幣</span>
-            <span className="text-navy font-medium">RMB {totals.totalRmb.toLocaleString()} / RMB {budgetMax.rmb.toLocaleString()}</span>
+            <span className="text-navy font-medium">¥ {totals.totalCny.toLocaleString()} / ¥ {budgetMax.cny.toLocaleString()}</span>
           </div>
-          <ProgressBar percent={rmbPercent} />
+          <ProgressBar percent={cnyPercent} />
         </div>
 
         <div className="border-t border-sand/30 pt-3">
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-warm-gray">換算台幣（$1 RMB = </span>
-            <input
-              type="number"
-              value={exchangeRate}
-              onChange={e => setExchangeRate(parseFloat(e.target.value) || DEFAULT_EXCHANGE_RATE)}
-              className="w-14 text-xs text-center bg-cream rounded px-1 py-0.5 border border-sand text-navy font-medium"
-              step="0.1"
-            />
+          <div className="flex items-center gap-1 text-xs mb-1">
+            <span className="text-warm-gray">換算台幣（¥1 = </span>
+            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(parseFloat(e.target.value) || DEFAULT_EXCHANGE_RATE)}
+              className="w-12 text-xs text-center bg-cream rounded px-1 py-0.5 border border-sand text-navy font-medium" step="0.1" />
             <span className="text-warm-gray">TWD）</span>
           </div>
           <div className="flex justify-between text-xs mb-1">
@@ -98,6 +91,71 @@ export default function BudgetOverview() {
           {totalPercent > 100 && (
             <p className="text-xs text-coral mt-1">⚠️ 已超過總預算上限</p>
           )}
+        </div>
+      </div>
+
+      {/* Settlement Summary */}
+      <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-3">
+        <h3 className="text-sm font-semibold text-navy">💸 分帳結算</h3>
+
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="bg-cream rounded-xl p-3">
+            <p className="text-warm-gray mb-1">💰 人民幣現金剩餘</p>
+            <p className="text-lg font-bold text-coral">¥ {settlement.cashCnyRemaining.toLocaleString()}</p>
+          </div>
+          <div className="bg-cream rounded-xl p-3">
+            <p className="text-warm-gray mb-1">💱 匯率</p>
+            <p className="text-lg font-bold text-navy">{exchangeRate}</p>
+          </div>
+        </div>
+
+        <div className="border-t border-sand/30 pt-3 space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span>嘉豪 實付 CNY</span><span className="font-medium">¥ {settlement.mePaidCny.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>嘉豪 個人 CNY</span><span className="font-medium">¥ {settlement.meSelfCny.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>嘉豪 分攤 shared CNY</span><span className="font-medium">¥ {settlement.meOweSharedCny.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>翊婷 實付 CNY</span><span>¥ {settlement.yitingPaidCny.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>翊婷 個人 CNY</span><span>¥ {settlement.yitingSelfCny.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>翊婷 分攤 shared CNY</span><span>¥ {settlement.yitingOweSharedCny.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between border-t border-sand/30 pt-2 font-semibold">
+            <span>CNY 結算</span>
+            <span className={settlement.settlementCny > 0 ? 'text-ocean' : settlement.settlementCny < 0 ? 'text-coral' : 'text-warm-gray'}>
+              {settlement.settlementCny > 0
+                ? `翊婷 → 嘉豪 ¥ ${settlement.settlementCny.toLocaleString()}`
+                : settlement.settlementCny < 0
+                  ? `嘉豪 → 翊婷 ¥ ${Math.abs(settlement.settlementCny).toLocaleString()}`
+                  : '已結清'}
+            </span>
+          </div>
+
+          {/* TWD section */}
+          <div className="flex justify-between mt-2">
+            <span>嘉豪 實付 TWD</span><span className="font-medium">NT$ {settlement.mePaidTwd.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>翊婷 實付 TWD</span><span>NT$ {settlement.yitingPaidTwd.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between border-t border-sand/30 pt-2 font-semibold">
+            <span>TWD 結算</span>
+            <span className={settlement.settlementTwd > 0 ? 'text-ocean' : settlement.settlementTwd < 0 ? 'text-coral' : 'text-warm-gray'}>
+              {settlement.settlementTwd > 0
+                ? `翊婷 → 嘉豪 NT$ ${settlement.settlementTwd.toLocaleString()}`
+                : settlement.settlementTwd < 0
+                  ? `嘉豪 → 翊婷 NT$ ${Math.abs(settlement.settlementTwd).toLocaleString()}`
+                  : '已結清'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -119,18 +177,18 @@ export default function BudgetOverview() {
               <div className="flex justify-between">
                 <span>預算</span>
                 <span>
-                  {cat.twdMax > 0 && `N$ ${cat.twdMin.toLocaleString()}–${cat.twdMax.toLocaleString()}`}
-                  {cat.twdMax > 0 && cat.rmbMax > 0 && ' + '}
-                  {cat.rmbMax > 0 && `RMB ${cat.rmbMin}–${cat.rmbMax}`}
+                  {cat.twdMax > 0 && `NT$ ${cat.twdMin.toLocaleString()}–${cat.twdMax.toLocaleString()}`}
+                  {cat.twdMax > 0 && cat.cnyMax > 0 && ' + '}
+                  {cat.cnyMax > 0 && `¥ ${cat.cnyMin}–${cat.cnyMax}`}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>已花費</span>
                 <span>
                   {cat.spentTwd > 0 && `NT$ ${cat.spentTwd.toLocaleString()}`}
-                  {cat.spentTwd > 0 && cat.spentRmb > 0 && ' + '}
-                  {cat.spentRmb > 0 && `RMB ${cat.spentRmb.toLocaleString()}`}
-                  {cat.spentTwd === 0 && cat.spentRmb === 0 && '—'}
+                  {cat.spentTwd > 0 && cat.spentCny > 0 && ' + '}
+                  {cat.spentCny > 0 && `¥ ${cat.spentCny.toLocaleString()}`}
+                  {cat.spentTwd === 0 && cat.spentCny === 0 && '—'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -143,14 +201,10 @@ export default function BudgetOverview() {
         ))}
       </div>
 
-      {/* Expense List */}
       <ExpenseList onToast={showToast} />
 
-      {/* FAB + Modal */}
       <button onClick={() => setShowForm(true)}
-        className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-ocean text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-ocean/90 transition-colors active:scale-95">
-        ＋
-      </button>
+        className="fixed bottom-20 right-4 z-50 w-12 h-12 bg-ocean text-white rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-ocean/90 transition-colors active:scale-95">＋</button>
       {showForm && <ExpenseFormModal onClose={() => setShowForm(false)} onSuccess={() => showToast('✅ 已記錄')} />}
     </div>
   );

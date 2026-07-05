@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useExpenses } from '../hooks/useExpenses';
-import { budgetCategories } from '../data/budget';
+import { budgetCategories, PAYERS, EXPENSE_FOR_OPTIONS, PAYMENT_METHODS } from '../data/budget';
 import { compressImage } from '../utils/imageCompress';
+import { getPin } from '../utils/pin';
+import type { ExpenseRecord } from '../utils/expenseDB';
 
 interface ExpenseFormModalProps {
   onClose: () => void;
@@ -9,30 +11,49 @@ interface ExpenseFormModalProps {
   initialExpense?: ExpenseRecord;
 }
 
-import type { ExpenseRecord } from '../utils/expenseDB';
-
 export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }: ExpenseFormModalProps) {
   const { addExpense, editExpense } = useExpenses();
   const isEdit = !!initialExpense;
   const [amount, setAmount] = useState(initialExpense ? String(initialExpense.amount) : '');
-  const [currency, setCurrency] = useState<'TWD' | 'RMB'>(initialExpense?.currency || 'RMB');
+  const [currency, setCurrency] = useState<'TWD' | 'CNY'>(initialExpense?.currency === 'TWD' ? 'TWD' : 'CNY');
   const [category, setCategory] = useState(initialExpense?.category || '');
-  const [payer, setPayer] = useState(initialExpense?.payer || '');
-  const [date, setDate] = useState(initialExpense?.date || (() => new Date().toISOString().slice(0, 10)));
+  const [paidBy, setPaidBy] = useState<'me' | 'yiting'>(initialExpense?.paidBy || 'me');
+  const [expenseFor, setExpenseFor] = useState<'self' | 'shared' | 'yiting'>(initialExpense?.expenseFor || 'self');
+  const [paymentMethod, setPaymentMethod] = useState<'cash_cny' | 'wechat' | 'alipay' | 'credit_card' | 'cash_twd' | 'other'>(initialExpense?.paymentMethod || 'cash_cny');
+  const [date, setDate] = useState(initialExpense?.date || new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState(initialExpense?.note || '');
   const [photo, setPhoto] = useState<string>(initialExpense?.photoBase64 || '');
+  const [photoKey, setPhotoKey] = useState<string>(initialExpense?.photoKey || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      setUploading(true);
       const base64 = await compressImage(file);
-      setPhoto(base64);
+      // Upload to R2
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}.jpg`;
+      const resp = await fetch('/api/upload-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-trip-pin': getPin() || '' },
+        body: JSON.stringify({ filename, data: base64 }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setPhotoKey(data.key);
+        setPhoto(base64); // keep local preview
+      } else {
+        // Fallback: store base64 only
+        setPhoto(base64);
+        setError('R2 unavailable, stored locally');
+      }
     } catch {
       setError('圖片處理失敗');
     }
+    setUploading(false);
   };
 
   const handleSubmit = async () => {
@@ -46,9 +67,12 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }:
         category,
         amount: parseFloat(amount),
         currency,
-        payer: payer || undefined,
+        paidBy,
+        expenseFor,
+        paymentMethod,
         note: note || undefined,
-        photoBase64: photo || undefined,
+        photoBase64: photoKey ? undefined : (photo || undefined),
+        photoKey: photoKey || undefined,
         createdAt: initialExpense?.createdAt || new Date().toISOString(),
       };
       if (isEdit) {
@@ -68,15 +92,15 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }:
     <div className="fixed inset-0 z-[65] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div className="bg-soft-white w-full max-w-lg rounded-t-2xl p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-navy">{isEdit ? '編輯支出' : '記帳'}</h3>
+          <h3 className="text-sm font-semibold text-navy">{isEdit ? '編輯支出' : '記帳'}</h3>
           <button onClick={onClose} className="text-warm-gray text-lg">✕</button>
         </div>
 
         {/* Photo */}
         <div>
-          <label className="text-xs text-warm-gray block mb-1">收據照片（選填）</label>
+          <label className="text-xs text-warm-gray block mb-1">收據照片（選填）{uploading && ' 📤'}</label>
           <input type="file" accept="image/*" capture="environment" onChange={handleFile}
-            className="text-xs bg-cream rounded-lg px-3 py-2.5 border border-sand w-full" />
+            className="text-xs bg-cream rounded-lg px-3 py-2.5 border border-sand w-full" disabled={uploading} />
           {photo && (
             <img src={photo} alt="preview" className="mt-2 rounded-lg max-h-32 object-cover" />
           )}
@@ -90,14 +114,10 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }:
               placeholder="0" className="w-full text-sm bg-cream rounded-lg px-3 py-2.5 border border-sand" />
           </div>
           <div className="flex gap-1">
-            <button onClick={() => setCurrency('RMB')}
-              className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${currency === 'RMB' ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
-              ¥ RMB
-            </button>
+            <button onClick={() => setCurrency('CNY')}
+              className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${currency === 'CNY' ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>¥ CNY</button>
             <button onClick={() => setCurrency('TWD')}
-              className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${currency === 'TWD' ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
-              NT$
-            </button>
+              className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${currency === 'TWD' ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>NT$</button>
           </div>
         </div>
 
@@ -113,14 +133,40 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }:
           </select>
         </div>
 
-        {/* Payer */}
+        {/* Paid By */}
         <div>
           <label className="text-xs text-warm-gray block mb-1">付款人</label>
           <div className="flex gap-1">
-            {['我', '妹妹', '一起'].map(p => (
-              <button key={p} onClick={() => setPayer(p === payer ? '' : p)}
-                className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${payer === p ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
-                {p}
+            {PAYERS.map(p => (
+              <button key={p.key} onClick={() => setPaidBy(p.key)}
+                className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${paidBy === p.key ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
+                👤 {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Expense For */}
+        <div>
+          <label className="text-xs text-warm-gray block mb-1">費用歸屬</label>
+          <div className="flex gap-1">
+            {EXPENSE_FOR_OPTIONS.map(o => (
+              <button key={o.key} onClick={() => setExpenseFor(o.key)}
+                className={`text-xs px-4 py-2.5 rounded-lg font-medium min-h-[44px] ${expenseFor === o.key ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Payment Method */}
+        <div>
+          <label className="text-xs text-warm-gray block mb-1">支付方式</label>
+          <div className="flex flex-wrap gap-1">
+            {PAYMENT_METHODS.map(m => (
+              <button key={m.key} onClick={() => setPaymentMethod(m.key)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-medium min-h-[36px] ${paymentMethod === m.key ? 'bg-ocean text-white' : 'bg-warm-gray/10 text-warm-gray'}`}>
+                {m.label}
               </button>
             ))}
           </div>

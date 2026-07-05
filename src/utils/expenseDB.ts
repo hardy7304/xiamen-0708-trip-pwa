@@ -3,15 +3,18 @@ export interface ExpenseRecord {
   date: string;
   category: string;
   amount: number;
-  currency: 'TWD' | 'RMB';
-  payer?: string;
+  currency: 'TWD' | 'CNY';
+  paidBy: 'me' | 'yiting';
+  expenseFor: 'self' | 'shared' | 'yiting';
+  paymentMethod: 'cash_cny' | 'wechat' | 'alipay' | 'credit_card' | 'cash_twd' | 'other';
   note?: string;
-  photoBase64?: string;
+  photoBase64?: string;   // legacy — kept for display
+  photoKey?: string;       // R2 key
   createdAt: string;
 }
 
 const DB_NAME = 'xiamen-trip-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;  // bumped from 1
 const STORE_NAME = 'expenses';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -36,6 +39,28 @@ function getDB(): Promise<IDBDatabase> {
 }
 
 export async function initDB(): Promise<IDBDatabase> { return getDB(); }
+
+/** Migrate old records on load */
+export function migrateRecord(record: any): ExpenseRecord {
+  // If already has new fields, return as-is
+  if (record.paidBy && record.expenseFor) return record as ExpenseRecord;
+
+  const oldPayer: string = record.payer || '';
+  let paidBy: 'me' | 'yiting' = 'me';
+  let expenseFor: 'self' | 'shared' | 'yiting' = 'self';
+
+  if (oldPayer === '我' || oldPayer === 'me') { paidBy = 'me'; expenseFor = 'self'; }
+  else if (oldPayer === '妹妹' || oldPayer === '翊婷' || oldPayer === 'yiting') { paidBy = 'yiting'; expenseFor = 'yiting'; }
+  else if (oldPayer === '一起' || oldPayer === 'shared') { paidBy = 'me'; expenseFor = 'shared'; }
+
+  return {
+    ...record,
+    paidBy: record.paidBy || paidBy,
+    expenseFor: record.expenseFor || expenseFor,
+    paymentMethod: record.paymentMethod || 'cash_cny',
+    currency: record.currency === 'RMB' ? 'CNY' : (record.currency || 'CNY'),
+  } as ExpenseRecord;
+}
 
 export async function addExpense(record: ExpenseRecord): Promise<void> {
   try {
@@ -83,7 +108,7 @@ export async function getAllExpenses(): Promise<ExpenseRecord[]> {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
+      req.onsuccess = () => resolve((req.result || []).map(migrateRecord));
       req.onerror = () => reject(req.error);
     });
   } catch (e) { console.error('getAllExpenses error:', e); return []; }
