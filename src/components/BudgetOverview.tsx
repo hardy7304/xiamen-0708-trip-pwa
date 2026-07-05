@@ -84,9 +84,6 @@ export default function BudgetOverview() {
   };
 
   // Helpers for the new balance structure
-  const getBalance = (person: string, currency: 'cny' | 'twd') => {
-    return settlement.balances[person]?.[currency] || 0;
-  };
   const getPaid = (person: string, currency: 'cny' | 'twd') => {
     return settlement.paid[person]?.[currency] || 0;
   };
@@ -163,18 +160,21 @@ export default function BudgetOverview() {
         <div className="bg-cream rounded-card p-4">
           <h4 className="text-xs font-semibold text-navy mb-3">🇨🇳 人民幣 (CNY)</h4>
           <div className="space-y-1.5 text-xs mb-3">
-            {persons.map(p => (
-              <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
-                <span className="font-medium text-navy">{PERSON_NAMES[p]}</span>
-                <div className="flex gap-3 text-right">
-                  <span className="text-warm-gray/60">實付 ¥{getPaid(p, 'cny').toLocaleString()}</span>
-                  <span className="text-warm-gray/60">應付 ¥{getOwed(p, 'cny').toLocaleString()}</span>
-                  <span className={`font-semibold ${getBalance(p, 'cny') >= 0 ? 'text-ocean' : 'text-coral'}`}>
-                    {getBalance(p, 'cny') >= 0 ? '+' : ''}¥{getBalance(p, 'cny').toLocaleString()}
-                  </span>
+            {persons.map(p => {
+              const net = getPaid(p, 'cny') - getOwed(p, 'cny');
+              return (
+                <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                  <span className="font-medium text-navy">{PERSON_NAMES[p]}</span>
+                  <div className="flex gap-3 text-right">
+                    <span className="text-warm-gray/60">已付 ¥{getPaid(p, 'cny').toLocaleString()}</span>
+                    <span className="text-warm-gray/60">應負擔 ¥{getOwed(p, 'cny').toLocaleString()}</span>
+                    <span className={`font-semibold ${net > 0.01 ? 'text-ocean' : net < -0.01 ? 'text-coral' : 'text-warm-gray'}`}>
+                      {net > 0.01 ? `+¥${net.toLocaleString()}` : net < -0.01 ? `-¥${Math.abs(net).toLocaleString()}` : '¥0'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {persons.map(p => {
               const pAmt = getPersonal(p, 'cny');
               return (
@@ -211,18 +211,21 @@ export default function BudgetOverview() {
         <div className="bg-cream rounded-card p-4">
           <h4 className="text-xs font-semibold text-navy mb-3">🇹🇼 台幣 (TWD)</h4>
           <div className="space-y-1.5 text-xs mb-3">
-            {persons.map(p => (
-              <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
-                <span className="font-medium text-navy">{PERSON_NAMES[p]}</span>
-                <div className="flex gap-3 text-right">
-                  <span className="text-warm-gray/60">實付 NT${getPaid(p, 'twd').toLocaleString()}</span>
-                  <span className="text-warm-gray/60">應付 NT${getOwed(p, 'twd').toLocaleString()}</span>
-                  <span className={`font-semibold ${getBalance(p, 'twd') >= 0 ? 'text-ocean' : 'text-coral'}`}>
-                    {getBalance(p, 'twd') >= 0 ? '+' : ''}NT${getBalance(p, 'twd').toLocaleString()}
-                  </span>
+            {persons.map(p => {
+              const net = getPaid(p, 'twd') - getOwed(p, 'twd');
+              return (
+                <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                  <span className="font-medium text-navy">{PERSON_NAMES[p]}</span>
+                  <div className="flex gap-3 text-right">
+                    <span className="text-warm-gray/60">已付 NT${getPaid(p, 'twd').toLocaleString()}</span>
+                    <span className="text-warm-gray/60">應負擔 NT${getOwed(p, 'twd').toLocaleString()}</span>
+                    <span className={`font-semibold ${net > 1 ? 'text-ocean' : net < -1 ? 'text-coral' : 'text-warm-gray'}`}>
+                      {net > 1 ? `+NT$${net.toLocaleString()}` : net < -1 ? `-NT$${Math.abs(net).toLocaleString()}` : 'NT$0'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {persons.map(p => {
               const pAmt = getPersonal(p, 'twd');
               return (
