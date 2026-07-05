@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { useExpenses } from '../hooks/useExpenses';
+import { useSettlements } from '../hooks/useSettlements';
 import { DEFAULT_EXCHANGE_RATE } from '../data/budget';
 import { ensurePin } from '../utils/pin';
 import ExpenseFormModal from './ExpenseFormModal';
@@ -22,9 +23,16 @@ function fmtAmount(n: number): string {
   return `NT$ ${n.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
 }
 
+function settleLabel(amt: number): { color: string; text: string } {
+  if (Math.abs(amt) < 0.01) return { color: 'text-warm-gray', text: '已結清' };
+  if (amt > 0) return { color: 'text-green-600', text: `應收 ¥ ${amt.toLocaleString()}` };
+  return { color: 'text-coral', text: `應付 ¥ ${Math.abs(amt).toLocaleString()}` };
+}
+
 export default function BudgetOverview() {
   const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget();
   const { expenses, addExpense, editExpense, removeExpense } = useExpenses();
+  const { settlements, addSettlement, removeSettlement } = useSettlements();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
   const [toast, setToast] = useState('');
@@ -50,6 +58,36 @@ export default function BudgetOverview() {
     showToast('✅ 已記錄');
   };
 
+  const handleMarkSettledCny = async () => {
+    if (settlement.settlementCny <= 0) return;
+    await addSettlement({
+      id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      from: '翊婷',
+      to: '嘉豪',
+      currency: 'CNY',
+      amount: settlement.settlementCny,
+      method: '現金',
+      createdAt: new Date().toISOString(),
+      status: 'settled',
+    });
+    showToast('✅ 已標記 CNY 結清');
+  };
+
+  const handleMarkSettledTwd = async () => {
+    if (settlement.settlementTwd <= 0) return;
+    await addSettlement({
+      id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      from: '翊婷',
+      to: '嘉豪',
+      currency: 'TWD',
+      amount: settlement.settlementTwd,
+      method: '現金',
+      createdAt: new Date().toISOString(),
+      status: 'settled',
+    });
+    showToast('✅ 已標記 TWD 結清');
+  };
+
   return (
     <div className="relative space-y-4">
       {toast && (
@@ -70,6 +108,7 @@ export default function BudgetOverview() {
         </div>
       </details>
 
+      {/* Summary Cards */}
       <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-4">
         <h3 className="text-sm font-semibold text-navy">💰 總預算概覽</h3>
         <div>
@@ -102,42 +141,106 @@ export default function BudgetOverview() {
         </div>
       </div>
 
-      <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-3">
-        <h3 className="text-sm font-semibold text-navy">💸 分帳結算</h3>
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="bg-cream rounded-xl p-3">
-            <p className="text-warm-gray mb-1">💰 人民幣現金剩餘</p>
-            <p className="text-lg font-bold text-coral">¥ {settlement.cashCnyRemaining.toLocaleString()}</p>
+      {/* Settlement Section */}
+      <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-4">
+        <h3 className="text-sm font-semibold text-navy">💸 結算建議</h3>
+
+        {/* CNY Card */}
+        <div className="bg-cream rounded-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-navy">🇨🇳 人民幣 (CNY)</h4>
+            <span className={`text-sm font-bold ${settleLabel(settlement.settlementCny).color}`}>
+              {settlement.settlementCny > 0 ? `翊婷 應付 嘉豪` : settlement.settlementCny < 0 ? `嘉豪 應付 翊婷` : '已結清'}
+            </span>
           </div>
-          <div className="bg-cream rounded-xl p-3">
-            <p className="text-warm-gray mb-1">💱 匯率</p>
-            <p className="text-lg font-bold text-navy">{exchangeRate}</p>
+          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">嘉豪 實付</p>
+              <p className="text-navy font-semibold">¥ {settlement.mePaidCny.toLocaleString()}</p>
+            </div>
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">翊婷 實付</p>
+              <p className="text-navy font-semibold">¥ {settlement.yitingPaidCny.toLocaleString()}</p>
+            </div>
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">共同分攤</p>
+              <p className="text-navy font-semibold">¥ {settlement.meOweSharedCny.toLocaleString()} / 人</p>
+            </div>
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">嘉豪 個人</p>
+              <p className="text-navy font-semibold">¥ {settlement.meSelfCny.toLocaleString()}</p>
+            </div>
           </div>
+          {settlement.settlementCny >= 0.01 && (
+            <button onClick={handleMarkSettledCny}
+              className="w-full text-xs py-2.5 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 transition-colors">
+              ✅ 標記為已結清 (¥ {settlement.settlementCny.toLocaleString()})
+            </button>
+          )}
         </div>
-        <div className="border-t border-sand/30 pt-3 space-y-2 text-xs">
-          <div className="flex justify-between"><span>嘉豪 實付 CNY</span><span className="font-medium">¥ {settlement.mePaidCny.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>嘉豪 個人 CNY</span><span className="font-medium">¥ {settlement.meSelfCny.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>嘉豪 分攤 shared CNY</span><span className="font-medium">¥ {settlement.meOweSharedCny.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>翊婷 實付 CNY</span><span>¥ {settlement.yitingPaidCny.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>翊婷 個人 CNY</span><span>¥ {settlement.yitingSelfCny.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>翊婷 分攤 shared CNY</span><span>¥ {settlement.yitingOweSharedCny.toLocaleString()}</span></div>
-          <div className="flex justify-between border-t border-sand/30 pt-2 font-semibold">
-            <span>CNY 結算</span>
-            <span className={settlement.settlementCny > 0 ? 'text-ocean' : settlement.settlementCny < 0 ? 'text-coral' : 'text-warm-gray'}>
-              {settlement.settlementCny > 0 ? `翊婷 → 嘉豪 ¥ ${settlement.settlementCny.toLocaleString()}` : settlement.settlementCny < 0 ? `嘉豪 → 翊婷 ¥ ${Math.abs(settlement.settlementCny).toLocaleString()}` : '已結清'}
+
+        {/* TWD Card */}
+        <div className="bg-cream rounded-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-semibold text-navy">🇹🇼 台幣 (TWD)</h4>
+            <span className={`text-sm font-bold ${settleLabel(settlement.settlementTwd).color}`}>
+              {settlement.settlementTwd > 0 ? `翊婷 應付 嘉豪` : settlement.settlementTwd < 0 ? `嘉豪 應付 翊婷` : '已結清'}
             </span>
           </div>
-          <div className="flex justify-between mt-2"><span>嘉豪 實付 TWD</span><span className="font-medium">NT$ {settlement.mePaidTwd.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>翊婷 實付 TWD</span><span>NT$ {settlement.yitingPaidTwd.toLocaleString()}</span></div>
-          <div className="flex justify-between border-t border-sand/30 pt-2 font-semibold">
-            <span>TWD 結算</span>
-            <span className={settlement.settlementTwd > 0 ? 'text-ocean' : settlement.settlementTwd < 0 ? 'text-coral' : 'text-warm-gray'}>
-              {settlement.settlementTwd > 0 ? `翊婷 → 嘉豪 NT$ ${settlement.settlementTwd.toLocaleString()}` : settlement.settlementTwd < 0 ? `嘉豪 → 翊婷 NT$ ${Math.abs(settlement.settlementTwd).toLocaleString()}` : '已結清'}
-            </span>
+          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">嘉豪 實付</p>
+              <p className="text-navy font-semibold">NT$ {settlement.mePaidTwd.toLocaleString()}</p>
+            </div>
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">翊婷 實付</p>
+              <p className="text-navy font-semibold">NT$ {settlement.yitingPaidTwd.toLocaleString()}</p>
+            </div>
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">共同分攤</p>
+              <p className="text-navy font-semibold">NT$ {settlement.meOweSharedTwd.toLocaleString()} / 人</p>
+            </div>
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">嘉豪 個人</p>
+              <p className="text-navy font-semibold">NT$ {settlement.meSelfTwd.toLocaleString()}</p>
+            </div>
           </div>
+          {settlement.settlementTwd >= 1 && (
+            <button onClick={handleMarkSettledTwd}
+              className="w-full text-xs py-2.5 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 transition-colors">
+              ✅ 標記為已結清 (NT$ {settlement.settlementTwd.toLocaleString()})
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Settlement History */}
+      {settlements.length > 0 && (
+        <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-3">
+          <h3 className="text-sm font-semibold text-navy">📜 結算紀錄</h3>
+          <div className="space-y-2">
+            {settlements.map(s => (
+              <div key={s.id} className="flex items-center justify-between bg-cream rounded-lg p-3">
+                <div className="text-xs">
+                  <p className="font-medium text-navy">{s.from} → {s.to}</p>
+                  <p className="text-warm-gray/60">
+                    {new Date(s.createdAt).toLocaleDateString('zh-TW')} · {s.method || '現金'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-bold ${s.currency === 'CNY' ? 'text-coral' : 'text-ocean'}`}>
+                    {s.currency === 'CNY' ? '¥' : 'NT$'} {s.amount.toLocaleString()}
+                  </span>
+                  <button onClick={() => removeSettlement(s.id)}
+                    className="text-[10px] px-2 py-1 rounded-full bg-coral/10 text-coral hover:bg-coral/20 min-h-[28px]">🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Category Cards */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-navy px-1">📊 分類預算</h3>
         {budgets.map(cat => (
