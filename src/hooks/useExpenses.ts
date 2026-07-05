@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAllExpenses, addExpense, putExpense, deleteExpense, addExpenses, type ExpenseRecord } from '../utils/expenseDB';
+import { getAllExpenses, addExpense, putExpense, deleteExpense, replaceAllExpenses, type ExpenseRecord } from '../utils/expenseDB';
 import { getPin } from '../utils/pin';
 
 export function useExpenses() {
@@ -13,15 +13,17 @@ export function useExpenses() {
 
   useEffect(() => { loadLocal().finally(() => setLoading(false)); }, [loadLocal]);
 
+  // Pull from KV: REPLACE all local data with what KV has
   const pullFromKV = useCallback(async () => {
     try {
       const resp = await fetch('/api/expenses');
       const data = await resp.json();
-      if (data.expenses) {
-        await addExpenses(data.expenses);
+      if (data.expenses !== undefined) {
+        console.log('[pullFromKV] replacing local with KV snapshot, count:', data.count);
+        await replaceAllExpenses(data.expenses || []);
         await loadLocal();
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[pullFromKV] failed', e); }
   }, [loadLocal]);
 
   useEffect(() => { pullFromKV(); }, [pullFromKV]);
@@ -33,19 +35,19 @@ export function useExpenses() {
   }, [pullFromKV]);
 
   const pushToKV = useCallback(async (records: ExpenseRecord[], mode: 'merge' | 'replace' = 'merge'): Promise<boolean> => {
+    console.log('[pushToKV]', { mode, count: records.length, ids: records.map(e => e.id) });
     try {
-      if (mode === 'replace' && records.length === 0) {
-        // 空陣列是合法結果（刪除全部）
-      }
       const resp = await fetch('/api/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-trip-pin': getPin() || '' },
         body: JSON.stringify({ expenses: records, mode }),
       });
-      if (!resp.ok) return false;
+      if (!resp.ok) { console.warn('[pushToKV] HTTP error', resp.status); return false; }
       const data = await resp.json();
-      return data.success === true;
-    } catch { return false; }
+      if (!data.success) { console.warn('[pushToKV] API returned success:false', data); return false; }
+      console.log('[pushToKV] success', data);
+      return true;
+    } catch (e) { console.warn('[pushToKV] fetch error', e); return false; }
   }, []);
 
   const add = useCallback(async (record: ExpenseRecord): Promise<boolean> => {
@@ -61,13 +63,18 @@ export function useExpenses() {
   }, [loadLocal, pushToKV]);
 
   const remove = useCallback(async (id: string) => {
+    console.log('[DELETE] removing', id);
     await deleteExpense(id);
-    // 重新讀取 IndexedDB 以取得最新 state
     const all = await getAllExpenses();
     const updated = all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     setExpenses(updated);
-    // 同步刪除後的完整清單到 KV（replace mode）
-    await pushToKV(updated, 'replace');
+    console.log('[DELETE] updated count:', updated.length);
+    const result = await pushToKV(updated, 'replace');
+    if (!result) {
+      alert('本機已刪除，但雲端刪除同步失敗，重新整理後可能會恢復');
+    } else {
+      console.log('[DELETE] cloud replace success');
+    }
   }, [pushToKV]);
 
   const getTotalByCategory = useCallback((category: string) => {
