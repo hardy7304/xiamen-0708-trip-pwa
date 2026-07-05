@@ -61,8 +61,15 @@ export default function BudgetOverview() {
     showToast(e.settled ? '已取消結清' : '✅ 已標記結清');
   };
 
-  // Mark settlement recommendation as done
+  // Mark settlement recommendation as done — also mark related expenses as settled
   const handleMarkSettled = async (rec: { from: string; to: string; currency: 'CNY' | 'TWD'; amount: number }) => {
+    // Mark all unsettled shared expenses in this currency as settled
+    for (const e of expenses) {
+      if (e.settled) continue;
+      if (e.currency !== rec.currency) continue;
+      if (e.expenseFor !== 'shared' && e.splitType !== 'equal' && e.splitType !== 'amount' && e.splitType !== 'ratio') continue;
+      await editExpense({ ...e, settled: true });
+    }
     await addSettlement({
       id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       from: PERSON_NAMES[rec.from] || rec.from,
@@ -170,9 +177,8 @@ export default function BudgetOverview() {
             ))}
             {persons.map(p => {
               const pAmt = getPersonal(p, 'cny');
-              if (pAmt < 0.01) return null;
               return (
-                <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                <div key={`personal-cny-${p}`} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
                   <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
                   <span className="text-navy font-medium">¥ {pAmt.toLocaleString()}</span>
                 </div>
@@ -219,9 +225,8 @@ export default function BudgetOverview() {
             ))}
             {persons.map(p => {
               const pAmt = getPersonal(p, 'twd');
-              if (pAmt < 1) return null;
               return (
-                <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                <div key={`personal-twd-${p}`} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
                   <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
                   <span className="text-navy font-medium">NT$ {pAmt.toLocaleString()}</span>
                 </div>
