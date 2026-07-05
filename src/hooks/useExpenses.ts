@@ -6,29 +6,37 @@ export function useExpenses() {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getAllExpenses().then(data => {
-      setExpenses(data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-    }).catch(e => {
-      console.error('useExpenses load error:', e);
-    }).finally(() => setLoading(false));
+  // Load from IndexedDB
+  const loadLocal = useCallback(async () => {
+    const data = await getAllExpenses();
+    setExpenses(data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   }, []);
 
-  useEffect(() => {
-    fetch('/api/expenses')
-      .then(r => r.json())
-      .then((data: { expenses?: ExpenseRecord[] }) => {
-        if (data.expenses && data.expenses.length > 0) {
-          addExpenses(data.expenses).then(() => {
-            return getAllExpenses();
-          }).then(all => {
-            setExpenses(all.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-          }).catch(() => {});
-        }
-      })
-      .catch(() => {});
-  }, []);
+  useEffect(() => { loadLocal().finally(() => setLoading(false)); }, [loadLocal]);
 
+  // Pull from KV and merge into local
+  const pullFromKV = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/expenses');
+      const data = await resp.json();
+      if (data.expenses && data.expenses.length > 0) {
+        await addExpenses(data.expenses);
+        await loadLocal();
+      }
+    } catch { /* ignore */ }
+  }, [loadLocal]);
+
+  // Pull on mount
+  useEffect(() => { pullFromKV(); }, [pullFromKV]);
+
+  // Pull on visibility change (user switches tabs/windows)
+  useEffect(() => {
+    const handler = () => { if (document.visibilityState === 'visible') pullFromKV(); };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [pullFromKV]);
+
+  // Push to KV
   const pushToKV = useCallback((records: ExpenseRecord[]) => {
     fetch('/api/expenses', {
       method: 'POST',
@@ -38,26 +46,20 @@ export function useExpenses() {
   }, []);
 
   const add = useCallback(async (record: ExpenseRecord) => {
-    try {
-      await addExpense(record);
-      setExpenses(prev => [record, ...prev].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-      pushToKV([record]);
-    } catch (e) { console.error('add expense error:', e); throw e; }
-  }, [pushToKV]);
+    await addExpense(record);
+    await loadLocal();
+    pushToKV([record]);
+  }, [loadLocal, pushToKV]);
 
   const edit = useCallback(async (record: ExpenseRecord) => {
-    try {
-      await putExpense(record);
-      setExpenses(prev => prev.map(e => e.id === record.id ? record : e).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-      pushToKV([record]);
-    } catch (e) { console.error('edit expense error:', e); throw e; }
-  }, [pushToKV]);
+    await putExpense(record);
+    await loadLocal();
+    pushToKV([record]);
+  }, [loadLocal, pushToKV]);
 
   const remove = useCallback(async (id: string) => {
-    try {
-      await deleteExpense(id);
-      setExpenses(prev => prev.filter(e => e.id !== id));
-    } catch (e) { console.error('remove expense error:', e); throw e; }
+    await deleteExpense(id);
+    setExpenses(prev => prev.filter(e => e.id !== id));
   }, []);
 
   const getTotalByCategory = useCallback((category: string) => {
