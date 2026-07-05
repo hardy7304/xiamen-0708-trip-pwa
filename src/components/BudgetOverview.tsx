@@ -23,11 +23,7 @@ function fmtAmount(n: number): string {
   return `NT$ ${n.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
 }
 
-function settleLabel(amt: number): { color: string; text: string } {
-  if (Math.abs(amt) < 0.01) return { color: 'text-warm-gray', text: '已結清' };
-  if (amt > 0) return { color: 'text-green-600', text: `應收 ¥ ${amt.toLocaleString()}` };
-  return { color: 'text-coral', text: `應付 ¥ ${Math.abs(amt).toLocaleString()}` };
-}
+const PERSON_NAMES: Record<string, string> = { me: '嘉豪', yiting: '翊婷' };
 
 export default function BudgetOverview() {
   const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget();
@@ -58,35 +54,46 @@ export default function BudgetOverview() {
     showToast('✅ 已記錄');
   };
 
-  const handleMarkSettledCny = async () => {
-    if (settlement.settlementCny <= 0) return;
-    await addSettlement({
-      id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      from: '翊婷',
-      to: '嘉豪',
-      currency: 'CNY',
-      amount: settlement.settlementCny,
-      method: '現金',
-      createdAt: new Date().toISOString(),
-      status: 'settled',
-    });
-    showToast('✅ 已標記 CNY 結清');
+  // Toggle settled on individual expense
+  const handleToggleSettle = async (e: ExpenseRecord) => {
+    const updated = { ...e, settled: !e.settled };
+    await editExpense(updated);
+    showToast(e.settled ? '已取消結清' : '✅ 已標記結清');
   };
 
-  const handleMarkSettledTwd = async () => {
-    if (settlement.settlementTwd <= 0) return;
+  // Mark settlement recommendation as done
+  const handleMarkSettled = async (rec: { from: string; to: string; currency: 'CNY' | 'TWD'; amount: number }) => {
     await addSettlement({
       id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      from: '翊婷',
-      to: '嘉豪',
-      currency: 'TWD',
-      amount: settlement.settlementTwd,
+      from: PERSON_NAMES[rec.from] || rec.from,
+      to: PERSON_NAMES[rec.to] || rec.to,
+      currency: rec.currency,
+      amount: rec.amount,
       method: '現金',
       createdAt: new Date().toISOString(),
       status: 'settled',
     });
-    showToast('✅ 已標記 TWD 結清');
+    showToast('✅ 已標記結清');
   };
+
+  // Helpers for the new balance structure
+  const getBalance = (person: string, currency: 'cny' | 'twd') => {
+    return settlement.balances[person]?.[currency] || 0;
+  };
+  const getPaid = (person: string, currency: 'cny' | 'twd') => {
+    return settlement.paid[person]?.[currency] || 0;
+  };
+  const getOwed = (person: string, currency: 'cny' | 'twd') => {
+    return settlement.owed[person]?.[currency] || 0;
+  };
+  const getPersonal = (person: string, currency: 'cny' | 'twd') => {
+    return settlement.personal[person]?.[currency] || 0;
+  };
+  const getShared = (person: string, currency: 'cny' | 'twd') => {
+    return settlement.shared[person]?.[currency] || 0;
+  };
+
+  const persons = ['me', 'yiting'];
 
   return (
     <div className="relative space-y-4">
@@ -147,70 +154,106 @@ export default function BudgetOverview() {
 
         {/* CNY Card */}
         <div className="bg-cream rounded-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-navy">🇨🇳 人民幣 (CNY)</h4>
-            <span className={`text-sm font-bold ${settleLabel(settlement.settlementCny).color}`}>
-              {settlement.settlementCny > 0 ? `翊婷 應付 嘉豪` : settlement.settlementCny < 0 ? `嘉豪 應付 翊婷` : '已結清'}
-            </span>
+          <h4 className="text-xs font-semibold text-navy mb-3">🇨🇳 人民幣 (CNY)</h4>
+          <div className="space-y-1.5 text-xs mb-3">
+            {persons.map(p => (
+              <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                <span className="font-medium text-navy">{PERSON_NAMES[p]}</span>
+                <div className="flex gap-3 text-right">
+                  <span className="text-warm-gray/60">實付 ¥{getPaid(p, 'cny').toLocaleString()}</span>
+                  <span className="text-warm-gray/60">應付 ¥{getOwed(p, 'cny').toLocaleString()}</span>
+                  <span className={`font-semibold ${getBalance(p, 'cny') >= 0 ? 'text-ocean' : 'text-coral'}`}>
+                    {getBalance(p, 'cny') >= 0 ? '+' : ''}¥{getBalance(p, 'cny').toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {persons.map(p => {
+              const pAmt = getPersonal(p, 'cny');
+              if (pAmt < 0.01) return null;
+              return (
+                <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                  <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
+                  <span className="text-navy font-medium">¥ {pAmt.toLocaleString()}</span>
+                </div>
+              );
+            })}
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">共同 ¥{persons.reduce((s, p) => s + getShared(p, 'cny'), 0).toLocaleString()}</p>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">嘉豪 實付</p>
-              <p className="text-navy font-semibold">¥ {settlement.mePaidCny.toLocaleString()}</p>
+          {settlement.recommendations.filter(r => r.currency === 'CNY').map((rec, i) => (
+            <div key={i} className="flex items-center justify-between bg-soft-white rounded-lg p-2.5 mb-2">
+              <span className="text-xs font-medium text-coral">
+                {PERSON_NAMES[rec.from]} → {PERSON_NAMES[rec.to]}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-coral">¥ {rec.amount.toLocaleString()}</span>
+                <button onClick={() => handleMarkSettled(rec)}
+                  className="text-[10px] px-2.5 py-1.5 bg-ocean text-white rounded-full font-medium hover:bg-ocean/90">
+                  ✅ 標記結清
+                </button>
+              </div>
             </div>
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">翊婷 實付</p>
-              <p className="text-navy font-semibold">¥ {settlement.yitingPaidCny.toLocaleString()}</p>
-            </div>
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">共同分攤</p>
-              <p className="text-navy font-semibold">¥ {settlement.meOweSharedCny.toLocaleString()} / 人</p>
-            </div>
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">嘉豪 個人</p>
-              <p className="text-navy font-semibold">¥ {settlement.meSelfCny.toLocaleString()}</p>
-            </div>
-          </div>
-          {settlement.settlementCny >= 0.01 && (
-            <button onClick={handleMarkSettledCny}
-              className="w-full text-xs py-2.5 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 transition-colors">
-              ✅ 標記為已結清 (¥ {settlement.settlementCny.toLocaleString()})
-            </button>
+          ))}
+          {settlement.recommendations.filter(r => r.currency === 'CNY').length === 0 && (
+            <p className="text-xs text-warm-gray/60 text-center py-2">CNY 已結清</p>
           )}
         </div>
 
         {/* TWD Card */}
         <div className="bg-cream rounded-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-semibold text-navy">🇹🇼 台幣 (TWD)</h4>
-            <span className={`text-sm font-bold ${settleLabel(settlement.settlementTwd).color}`}>
-              {settlement.settlementTwd > 0 ? `翊婷 應付 嘉豪` : settlement.settlementTwd < 0 ? `嘉豪 應付 翊婷` : '已結清'}
-            </span>
+          <h4 className="text-xs font-semibold text-navy mb-3">🇹🇼 台幣 (TWD)</h4>
+          <div className="space-y-1.5 text-xs mb-3">
+            {persons.map(p => (
+              <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                <span className="font-medium text-navy">{PERSON_NAMES[p]}</span>
+                <div className="flex gap-3 text-right">
+                  <span className="text-warm-gray/60">實付 NT${getPaid(p, 'twd').toLocaleString()}</span>
+                  <span className="text-warm-gray/60">應付 NT${getOwed(p, 'twd').toLocaleString()}</span>
+                  <span className={`font-semibold ${getBalance(p, 'twd') >= 0 ? 'text-ocean' : 'text-coral'}`}>
+                    {getBalance(p, 'twd') >= 0 ? '+' : ''}NT${getBalance(p, 'twd').toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {persons.map(p => {
+              const pAmt = getPersonal(p, 'twd');
+              if (pAmt < 1) return null;
+              return (
+                <div key={p} className="bg-soft-white rounded-lg p-2 flex items-center justify-between">
+                  <span className="text-warm-gray/60">{PERSON_NAMES[p]} 個人</span>
+                  <span className="text-navy font-medium">NT$ {pAmt.toLocaleString()}</span>
+                </div>
+              );
+            })}
+            <div className="bg-soft-white rounded-lg p-2">
+              <p className="text-warm-gray/60">共同 NT${persons.reduce((s, p) => s + getShared(p, 'twd'), 0).toLocaleString()}</p>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">嘉豪 實付</p>
-              <p className="text-navy font-semibold">NT$ {settlement.mePaidTwd.toLocaleString()}</p>
+          {settlement.recommendations.filter(r => r.currency === 'TWD').map((rec, i) => (
+            <div key={i} className="flex items-center justify-between bg-soft-white rounded-lg p-2.5 mb-2">
+              <span className="text-xs font-medium text-coral">
+                {PERSON_NAMES[rec.from]} → {PERSON_NAMES[rec.to]}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-coral">NT$ {rec.amount.toLocaleString()}</span>
+                <button onClick={() => handleMarkSettled(rec)}
+                  className="text-[10px] px-2.5 py-1.5 bg-ocean text-white rounded-full font-medium hover:bg-ocean/90">
+                  ✅ 標記結清
+                </button>
+              </div>
             </div>
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">翊婷 實付</p>
-              <p className="text-navy font-semibold">NT$ {settlement.yitingPaidTwd.toLocaleString()}</p>
-            </div>
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">共同分攤</p>
-              <p className="text-navy font-semibold">NT$ {settlement.meOweSharedTwd.toLocaleString()} / 人</p>
-            </div>
-            <div className="bg-soft-white rounded-lg p-2">
-              <p className="text-warm-gray/60">嘉豪 個人</p>
-              <p className="text-navy font-semibold">NT$ {settlement.meSelfTwd.toLocaleString()}</p>
-            </div>
-          </div>
-          {settlement.settlementTwd >= 1 && (
-            <button onClick={handleMarkSettledTwd}
-              className="w-full text-xs py-2.5 bg-ocean text-white rounded-xl font-semibold hover:bg-ocean/90 transition-colors">
-              ✅ 標記為已結清 (NT$ {settlement.settlementTwd.toLocaleString()})
-            </button>
+          ))}
+          {settlement.recommendations.filter(r => r.currency === 'TWD').length === 0 && (
+            <p className="text-xs text-warm-gray/60 text-center py-2">TWD 已結清</p>
           )}
+        </div>
+
+        {/* Cash CNY remaining */}
+        <div className="bg-soft-white rounded-lg p-3 text-center">
+          <p className="text-xs text-warm-gray">💰 人民幣現金剩餘</p>
+          <p className="text-lg font-bold text-coral">¥ {settlement.cashCnyRemaining.toLocaleString()}</p>
         </div>
       </div>
 
@@ -260,7 +303,13 @@ export default function BudgetOverview() {
       </div>
 
       {pinReady ? (
-        <ExpenseList expenses={expenses} onRemove={removeExpense} onEdit={(e) => { setEditingExpense(e); setShowForm(true); }} onToast={showToast} />
+        <ExpenseList
+          expenses={expenses}
+          onRemove={removeExpense}
+          onEdit={(e) => { setEditingExpense(e); setShowForm(true); }}
+          onToast={showToast}
+          onToggleSettle={handleToggleSettle}
+        />
       ) : (
         <div className="bg-soft-white rounded-card shadow-card p-6 border border-sand/50 text-center">
           <p className="text-sm text-warm-gray">🔒 正在準備...</p>
