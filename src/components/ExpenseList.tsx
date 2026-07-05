@@ -31,8 +31,10 @@ export default function ExpenseList({ onToast }: ExpenseListProps) {
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
   const [r2Blobs, setR2Blobs] = useState<Record<string, string>>({});
 
-  // Fetch R2 images on mount
+  // Fetch R2 images, with cleanup
   useEffect(() => {
+    const urls: string[] = [];
+
     const fetchR2 = async (key: string) => {
       if (r2Blobs[key]) return;
       try {
@@ -42,6 +44,7 @@ export default function ExpenseList({ onToast }: ExpenseListProps) {
         if (resp.ok) {
           const blob = await resp.blob();
           const url = URL.createObjectURL(blob);
+          urls.push(url);
           setR2Blobs(prev => ({ ...prev, [key]: url }));
         }
       } catch { /* ignore */ }
@@ -50,6 +53,10 @@ export default function ExpenseList({ onToast }: ExpenseListProps) {
     expenses.forEach(e => {
       if (e.photoKey) fetchR2(e.photoKey);
     });
+
+    return () => {
+      urls.forEach(url => URL.revokeObjectURL(url));
+    };
   }, [expenses]);
 
   const grouped = useMemo(() => {
