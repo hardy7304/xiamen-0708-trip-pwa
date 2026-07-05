@@ -99,8 +99,18 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense }:
         {/* Photo */}
         <div>
           <label className="text-xs text-warm-gray block mb-1">收據照片（選填）{uploading && ' 📤'}</label>
-          <input type="file" accept="image/*" capture="environment" onChange={handleFile}
-            className="text-xs bg-cream rounded-lg px-3 py-2.5 border border-sand w-full" disabled={uploading} />
+          <div className="flex gap-2">
+            <label className="flex-1 text-xs bg-cream rounded-lg px-3 py-2.5 border border-sand cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1">
+              📷 拍照
+              <input type="file" accept="image/*" capture="environment" onChange={handleFile}
+                className="hidden" disabled={uploading} />
+            </label>
+            <label className="flex-1 text-xs bg-cream rounded-lg px-3 py-2.5 border border-sand cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1">
+              📁 選照片
+              <input type="file" accept="image/*,.jpg,.jpeg,.png,.pdf" onChange={handleFile}
+                className="hidden" disabled={uploading} />
+            </label>
+          </div>
           {photo && (
             <img src={photo} alt="preview" className="mt-2 rounded-lg max-h-32 object-cover" />
           )}
