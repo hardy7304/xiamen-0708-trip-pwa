@@ -62,6 +62,8 @@ export default function BudgetOverview() {
   };
 
   // Mark settlement recommendation as done — also mark related expenses as settled
+  // Current MVP marks expenses as settled directly.
+  // Future enhancement: create settlement history records with from/to/amount/expenseIds/settledAt.
   const handleMarkSettled = async (rec: { from: string; to: string; currency: 'CNY' | 'TWD'; amount: number }) => {
     // Mark all unsettled shared expenses in this currency as settled
     for (const e of expenses) {

@@ -63,6 +63,7 @@ export async function onRequest(context) {
       }
 
       // mode === "merge" (default) — upsert by id so edits are persisted
+      // Future enhancement: updatedAt-based conflict resolution for concurrent edits
       const existing = await getAll(env.SPOTS_KV, KEY);
       const map = new Map(existing.map(e => [e.id, e]));
       for (const e of migrated) {
