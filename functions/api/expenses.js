@@ -62,18 +62,19 @@ export async function onRequest(context) {
         }), { status: 200, headers });
       }
 
-      // mode === "merge" (default)
+      // mode === "merge" (default) — upsert by id so edits are persisted
       const existing = await getAll(env.SPOTS_KV, KEY);
-      const existingIds = new Set(existing.map(e => e.id));
-      const newItems = migrated.filter(e => !existingIds.has(e.id));
-      const merged = [...existing, ...newItems];
+      const map = new Map(existing.map(e => [e.id, e]));
+      for (const e of migrated) {
+        map.set(e.id, e); // overwrite if id already exists, add if new
+      }
+      const merged = Array.from(map.values());
 
       await saveAll(env.SPOTS_KV, KEY, merged);
       return new Response(JSON.stringify({
         success: true,
         mode: 'merge',
         count: merged.length,
-        added: newItems.length
       }), { status: 200, headers });
     } catch (e) {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers });
