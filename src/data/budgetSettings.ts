@@ -37,7 +37,7 @@ export function defaultBudgetSettings(categories: BudgetCategory[]): BudgetSetti
       budget: c.cnyMax > 0 ? c.cnyMax : c.twdMax,
       enabled: true,
     })),
-    updatedAt: Date.now(),
+    updatedAt: 0, // 0 ensures remote always wins on first pull
     initialCnyCash: rmbTotal,
   };
 }
