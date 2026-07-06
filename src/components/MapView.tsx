@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import L from 'leaflet';
-import { builtInSpots, ALL_MAP_DAYS, CAT_ZH, CAT_COLORS, geoGoogle, geoAmap, type MapSpot } from '../data/mapSpots';
+import { builtInSpots, ALL_MAP_DAYS, CAT_ZH, CAT_COLORS, geoGoogle, type MapSpot } from '../data/mapSpots';
+import { buildAmapWebUrl } from '../utils/mapLinks';
 
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/1wM-brW_yG22bcphlBbvHyad98Br7YNVdPgkiXsLkV-c/export?format=csv';
 const MANUAL_KEY = 'xiamen-map-spots-v1';
@@ -33,7 +34,7 @@ function sheetToMap(spot: any): MapSpot {
     lat: spot.lat,
     lng: spot.lng,
     address: spot.address || '',
-    amapUrl: spot.amap_keyword ? geoAmap(spot.amap_keyword) : undefined,
+    amapUrl: spot.amap_keyword ? buildAmapWebUrl({ name: spot.amap_keyword }) : undefined,
     googleMapsUrl: spot.google_keyword ? geoGoogle(spot.google_keyword) : undefined,
     note: spot.tips || '',
     days,
@@ -191,7 +192,7 @@ export default function MapView() {
       }
 
       const cn = CAT_ZH[spot.category] || spot.category;
-      const amapLink = spot.amapUrl || geoAmap(spot.name);
+      const amapLink = spot.amapUrl || buildAmapWebUrl({ name: spot.name });
       const gmapLink = spot.googleMapsUrl || (spot.address ? geoGoogle(spot.address) : geoGoogle(spot.name));
 
       let popup = `<div style="font-family:'Noto Sans TC',sans-serif;max-width:240px;font-size:12px;">`;
@@ -243,7 +244,7 @@ export default function MapView() {
       note: formNote || undefined,
       lat: formLat ? parseFloat(formLat) : undefined,
       lng: formLng ? parseFloat(formLng) : undefined,
-      amapUrl: formAddress ? geoAmap(formAddress) : undefined,
+      amapUrl: formAddress ? buildAmapWebUrl({ name: formAddress }) : undefined,
       googleMapsUrl: formAddress ? geoGoogle(formAddress) : undefined,
       source: 'manual',
       createdAt: editingSpot?.createdAt || new Date().toISOString(),
@@ -336,8 +337,8 @@ export default function MapView() {
             }
 
             const amapUrl = filteredSpots.length > 0
-              ? geoAmap(filteredSpots[0].name)
-              : geoAmap('廈門五通碼頭');
+              ? buildAmapWebUrl({ name: filteredSpots[0].name })
+              : buildAmapWebUrl({ name: '廈門五通碼頭' });
 
             const copyList = () => {
               const text = filteredSpots.map(s => s.name).join('\n');
@@ -396,7 +397,7 @@ export default function MapView() {
                   {spot.address && <p className="text-xs text-warm-gray mt-0.5">{spot.address}</p>}
                   {spot.note && <p className="text-xs text-ocean mt-0.5">{spot.note}</p>}
                   <div className="flex gap-1 mt-1.5">
-                    <a href={spot.amapUrl || geoAmap(spot.name)} target="_blank" rel="noopener"
+                    <a href={spot.amapUrl || buildAmapWebUrl({ name: spot.name })} target="_blank" rel="noopener"
                       className="text-[10px] px-2 py-1 rounded-full bg-ocean/10 text-ocean hover:bg-ocean/20">🗺️ 高德</a>
                     <a href={spot.googleMapsUrl || (spot.address ? geoGoogle(spot.address) : geoGoogle(spot.name))} target="_blank" rel="noopener"
                       className="text-[10px] px-2 py-1 rounded-full bg-gold-light/40 text-gold hover:bg-gold-light/60">📍 Google</a>

@@ -1,5 +1,5 @@
-import type { TransportLeg, MapLinks } from '../data/trip';
-import { geoGoogle, geoAmap } from '../data/trip';
+import type { TransportLeg } from '../data/trip';
+import MapActions from './MapActions';
 
 interface TransportCardProps {
   leg: TransportLeg;
@@ -17,33 +17,12 @@ function formatCountdown(ms: number): string {
   return `${m} 分 ${s} 秒`;
 }
 
-function getMapLinks(leg: TransportLeg): { departure?: MapLinks; arrival?: MapLinks } {
-  const kinmenAirports = ['金門尚義機場', '台南機場'];
-  const xiamenPlaces = ['廈門五通碼頭'];
-  return {
-    departure: xiamenPlaces.some(p => leg.departure.includes(p))
-      ? { amap: geoAmap('厦门五通客运码头') }
-      : kinmenAirports.some(p => leg.departure.includes(p))
-        ? { google: geoGoogle(leg.departure) }
-        : leg.departure.includes('水頭') ? { google: geoGoogle('金門水頭碼頭') }
-        : leg.departure.includes('小港') ? { google: geoGoogle('高雄小港機場') }
-        : undefined,
-    arrival: xiamenPlaces.some(p => leg.arrival.includes(p))
-      ? { amap: geoAmap('厦门五通客运码头') }
-      : kinmenAirports.some(p => leg.arrival.includes(p))
-        ? { google: geoGoogle(leg.arrival) }
-        : leg.arrival.includes('水頭') ? { google: geoGoogle('金門水頭碼頭') }
-        : undefined,
-  };
-}
-
 export default function TransportCard({ leg, now }: TransportCardProps) {
   const isFlight = leg.type === 'flight';
   const icon = isFlight ? '✈️' : '🚢';
   const depTime = new Date(leg.dateTime).getTime();
   const countdown = depTime - now;
   const isPast = countdown <= 0;
-  const mapLinks = getMapLinks(leg);
 
   // Suggested departure time: 1.5 hours before for flights, 40 min for ferry
   const suggestOffset = isFlight ? 90 * 60 * 1000 : 40 * 60 * 1000;
@@ -71,16 +50,9 @@ export default function TransportCard({ leg, now }: TransportCardProps) {
         <div className="flex-1 text-center">
           <p className="text-2xl font-bold text-navy">{leg.departureTime}</p>
           <p className="text-xs text-warm-gray mt-1">{leg.departure}</p>
-          {(mapLinks.departure?.amap || mapLinks.departure?.google) && (
-            <div className="mt-1">
-              {mapLinks.departure.amap && (
-                <a href={mapLinks.departure.amap} target="_blank" rel="noopener noreferrer" className="text-[10px] text-ocean hover:underline">🗺️ 地圖</a>
-              )}
-              {mapLinks.departure.google && (
-                <a href={mapLinks.departure.google!} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gold hover:underline ml-1">📍 地圖</a>
-              )}
-            </div>
-          )}
+          <div className="mt-1">
+            <MapActions name={leg.departure} compact />
+          </div>
         </div>
         <div className="flex flex-col items-center">
           <div className="w-12 h-px bg-gold-light" />
@@ -90,16 +62,9 @@ export default function TransportCard({ leg, now }: TransportCardProps) {
         <div className="flex-1 text-center">
           <p className="text-2xl font-bold text-navy">{leg.arrivalTime}</p>
           <p className="text-xs text-warm-gray mt-1">{leg.arrival}</p>
-          {(mapLinks.arrival?.amap || mapLinks.arrival?.google) && (
-            <div className="mt-1">
-              {mapLinks.arrival.amap && (
-                <a href={mapLinks.arrival.amap} target="_blank" rel="noopener noreferrer" className="text-[10px] text-ocean hover:underline">🗺️ 地圖</a>
-              )}
-              {mapLinks.arrival.google && (
-                <a href={mapLinks.arrival.google!} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gold hover:underline ml-1">📍 地圖</a>
-              )}
-            </div>
-          )}
+          <div className="mt-1">
+            <MapActions name={leg.arrival} compact />
+          </div>
         </div>
       </div>
 
