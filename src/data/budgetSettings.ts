@@ -17,8 +17,9 @@ export interface BudgetSettings {
     RMB: number;
   };
   categories: BudgetCategorySetting[];
-  updatedAt: number;
   initialCnyCash: number;
+  exchangeRate: number;
+  updatedAt: number;
 }
 
 /** Build default settings from the hardcoded budgetCategories map */
@@ -37,7 +38,8 @@ export function defaultBudgetSettings(categories: BudgetCategory[]): BudgetSetti
       budget: c.cnyMax > 0 ? c.cnyMax : c.twdMax,
       enabled: true,
     })),
-    updatedAt: 0, // 0 ensures remote always wins on first pull
     initialCnyCash: rmbTotal,
+    exchangeRate: 4.35,
+    updatedAt: 0, // 0 ensures remote always wins on first pull
   };
 }

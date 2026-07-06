@@ -27,8 +27,8 @@ function fmtAmount(n: number): string {
 const PERSON_NAMES: Record<string, string> = { me: '嘉豪', yiting: '翊婷' };
 
 export default function BudgetOverview() {
-  const { settings, updateTotal, updateCategory, updateInitialCnyCash, resetToDefaults } = useBudgetSettings();
-  const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget(settings);
+  const { settings, updateTotal, updateCategory, updateInitialCnyCash, resetToDefaults, updateExchangeRate } = useBudgetSettings();
+  const { budgets, totals, budgetMax, exchangeRate, settlement } = useBudget(settings);
   const { expenses, addExpense, editExpense, removeExpense, pullFromKV } = useExpenses();
   const { settlements, addSettlement, removeSettlement } = useSettlements();
   const [showForm, setShowForm] = useState(false);
@@ -187,7 +187,7 @@ export default function BudgetOverview() {
         <div className="border-t border-sand/30 pt-3">
           <div className="flex items-center gap-1 text-xs mb-1">
             <span className="text-warm-gray">換算台幣（¥1 = </span>
-            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(parseFloat(e.target.value) || DEFAULT_EXCHANGE_RATE)}
+            <input type="number" value={exchangeRate} onChange={e => updateExchangeRate(parseFloat(e.target.value) || DEFAULT_EXCHANGE_RATE)}
               className="w-12 text-xs text-center bg-cream rounded px-1 py-0.5 border border-sand text-navy font-medium" step="0.1" />
             <span className="text-warm-gray">TWD）</span>
           </div>

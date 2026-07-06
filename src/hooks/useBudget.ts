@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { budgetCategories, DEFAULT_EXCHANGE_RATE } from '../data/budget';
 import { useExpenses } from './useExpenses';
 import { normalizeExpense } from '../utils/expenseDB';
@@ -36,17 +36,7 @@ export function useBudget(settings?: BudgetSettings) {
   const { expenses: rawExpenses, getTotalByCategory } = useExpenses();
   const expenses = useMemo(() => rawExpenses.map(normalizeExpense), [rawExpenses]);
 
-  const [exchangeRate, setExchangeRateState] = useState(() => {
-    try {
-      const stored = localStorage.getItem('xiamen-exchange-rate');
-      return stored ? parseFloat(stored) : DEFAULT_EXCHANGE_RATE;
-    } catch { return DEFAULT_EXCHANGE_RATE; }
-  });
-
-  const setExchangeRate = useCallback((rate: number) => {
-    setExchangeRateState(rate);
-    try { localStorage.setItem('xiamen-exchange-rate', String(rate)); } catch { /* ignore */ }
-  }, []);
+  const exchangeRate = settings ? settings.exchangeRate : DEFAULT_EXCHANGE_RATE;
 
   const totals = useMemo(() => {
     let totalTwd = 0;
@@ -216,7 +206,6 @@ export function useBudget(settings?: BudgetSettings) {
     totals,
     budgetMax: { twd: budgetMaxTwd, cny: budgetMaxCny, equiv: budgetMaxEquiv },
     exchangeRate,
-    setExchangeRate,
     settlement,
   };
 }

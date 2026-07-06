@@ -12,8 +12,11 @@ function migrate(raw: any): BudgetSettings {
   if (typeof raw?.initialCnyCash !== 'number') {
     raw.initialCnyCash = raw?.total?.RMB ?? defaults.initialCnyCash;
   }
+  if (typeof raw?.exchangeRate !== 'number' || raw.exchangeRate <= 0) {
+    raw.exchangeRate = defaults.exchangeRate;
+  }
   if (!raw?.total || !raw?.categories) {
-    return { ...defaults, initialCnyCash: raw?.initialCnyCash ?? defaults.initialCnyCash, updatedAt: raw?.updatedAt ?? 0 };
+    return { ...defaults, initialCnyCash: raw?.initialCnyCash ?? defaults.initialCnyCash, exchangeRate: raw?.exchangeRate ?? defaults.exchangeRate, updatedAt: raw?.updatedAt ?? 0 };
   }
   return raw as BudgetSettings;
 }
@@ -102,6 +105,15 @@ export function useBudgetSettings() {
     });
   }, [pushSettingsToKV]);
 
+  const updateExchangeRate = useCallback((rate: number) => {
+    setSettings(prev => {
+      const next: BudgetSettings = { ...prev, exchangeRate: Math.max(0.01, rate || 0), updatedAt: Date.now() };
+      saveSettings(next);
+      pushSettingsToKV(next).then(ok => { if (!ok) console.warn('[budget-settings] push to KV failed'); });
+      return next;
+    });
+  }, [pushSettingsToKV]);
+
   const resetToDefaults = useCallback(() => {
     const defaults = defaultBudgetSettings(budgetCategories);
     saveSettings(defaults);
@@ -109,5 +121,5 @@ export function useBudgetSettings() {
     pushSettingsToKV(defaults).then(ok => { if (!ok) console.warn('[budget-settings] push to KV failed'); });
   }, [pushSettingsToKV]);
 
-  return { settings, updateTotal, updateCategory, updateInitialCnyCash, resetToDefaults, pullSettingsFromKV, pushSettingsToKV };
+  return { settings, updateTotal, updateCategory, updateInitialCnyCash, resetToDefaults, pullSettingsFromKV, pushSettingsToKV, updateExchangeRate };
 }
