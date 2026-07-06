@@ -17,10 +17,11 @@ export function useExpenses() {
   const pullFromKV = useCallback(async () => {
     try {
       const resp = await fetch('/api/expenses');
+      if (!resp.ok) { console.warn('[pullFromKV] HTTP error', resp.status); return; }
       const data = await resp.json();
-      if (data.expenses !== undefined) {
-        console.log('[pullFromKV] replacing local with KV snapshot, count:', data.count);
-        await replaceAllExpenses(data.expenses || []);
+      if (data.expenses !== undefined && Array.isArray(data.expenses)) {
+        console.log('[pullFromKV] replacing local with KV snapshot, count:', data.expenses.length);
+        await replaceAllExpenses(data.expenses);
         await loadLocal();
       }
     } catch (e) { console.warn('[pullFromKV] failed', e); }

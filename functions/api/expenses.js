@@ -29,7 +29,7 @@ export async function onRequest(context) {
   // GET → return all expenses
   if (request.method === 'GET') {
     if (!env.SPOTS_KV) {
-      return new Response(JSON.stringify({ expenses: [] }), { status: 200, headers });
+      return new Response(JSON.stringify({ error: 'KV not bound', expenses: [], count: 0 }), { status: 500, headers });
     }
     const expenses = await getAll(env.SPOTS_KV, KEY);
     const migrated = expenses.map(migrateExpense);
