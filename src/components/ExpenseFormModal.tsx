@@ -69,8 +69,8 @@ export default function ExpenseFormModal({ onClose, onSuccess, initialExpense, a
       const ok = isEdit ? await editExpense(record) : await addExpense(record);
       if (!ok) setError('本機已儲存，但雲端同步失敗');
       onSuccess();
-    } catch { setError('儲存失敗，請確認手機空間充足'); }
-    setSubmitting(false);
+    } catch (e: any) { setError(e?.message || '儲存失敗，請確認手機空間充足'); }
+    finally { setSubmitting(false); }
   };
 
   return (

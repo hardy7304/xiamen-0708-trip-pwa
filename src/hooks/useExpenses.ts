@@ -37,11 +37,15 @@ export function useExpenses() {
   const pushToKV = useCallback(async (records: ExpenseRecord[], mode: 'merge' | 'replace' = 'merge'): Promise<boolean> => {
     console.log('[pushToKV]', { mode, count: records.length, ids: records.map(e => e.id) });
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
       const resp = await fetch('/api/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-trip-pin': getPin() || '' },
         body: JSON.stringify({ expenses: records, mode }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (!resp.ok) { console.warn('[pushToKV] HTTP error', resp.status); return false; }
       const data = await resp.json();
       if (!data.success) { console.warn('[pushToKV] API returned success:false', data); return false; }
