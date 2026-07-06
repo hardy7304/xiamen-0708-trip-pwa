@@ -16,7 +16,7 @@ export function useExpenses() {
   // Pull from KV: REPLACE all local data with what KV has
   const pullFromKV = useCallback(async () => {
     try {
-      const resp = await fetch('/api/expenses');
+      const resp = await fetch('/api/expenses', { cache: 'no-store' });
       if (!resp.ok) { console.warn('[pullFromKV] HTTP error', resp.status); return; }
       const data = await resp.json();
       if (data.expenses !== undefined && Array.isArray(data.expenses)) {
@@ -90,5 +90,5 @@ export function useExpenses() {
     };
   }, [expenses]);
 
-  return { expenses, addExpense: add, editExpense: edit, removeExpense: remove, getTotalByCategory, loading };
+  return { expenses, addExpense: add, editExpense: edit, removeExpense: remove, getTotalByCategory, loading, pullFromKV };
 }

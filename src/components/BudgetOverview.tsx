@@ -29,7 +29,7 @@ const PERSON_NAMES: Record<string, string> = { me: '嘉豪', yiting: '翊婷' };
 export default function BudgetOverview() {
   const { settings, updateTotal, updateCategory, resetToDefaults } = useBudgetSettings();
   const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget(settings);
-  const { expenses, addExpense, editExpense, removeExpense } = useExpenses();
+  const { expenses, addExpense, editExpense, removeExpense, pullFromKV } = useExpenses();
   const { settlements, addSettlement, removeSettlement } = useSettlements();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseRecord | null>(null);
@@ -37,6 +37,19 @@ export default function BudgetOverview() {
   const [pinReady, setPinReady] = useState(false);
   const [pinEmpty, setPinEmpty] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await pullFromKV();
+      showToast('✅ 資料已同步');
+    } catch {
+      showToast('❌ 同步失敗');
+    } finally {
+      setSyncing(false);
+    }
+  };
   // local copies for editing
   const [editTotalTWD, setEditTotalTWD] = useState(settings.total.TWD);
   const [editTotalRMB, setEditTotalRMB] = useState(settings.total.RMB);
@@ -144,10 +157,16 @@ export default function BudgetOverview() {
       <div className="bg-soft-white rounded-card shadow-card p-5 border border-sand/50 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-navy">💰 總預算概覽</h3>
-          <button onClick={() => setShowSettings(true)}
-            className="text-[10px] px-2.5 py-1.5 bg-ocean/10 text-ocean rounded-full font-medium hover:bg-ocean/20">
-            ⚙️ 設定預算
-          </button>
+          <div className="flex gap-1.5">
+            <button onClick={handleSync} disabled={syncing}
+              className="text-[10px] px-2.5 py-1.5 bg-ocean/10 text-ocean rounded-full font-medium hover:bg-ocean/20 disabled:opacity-50">
+              {syncing ? '🔄 同步中...' : '🔄 同步資料'}
+            </button>
+            <button onClick={() => setShowSettings(true)}
+              className="text-[10px] px-2.5 py-1.5 bg-ocean/10 text-ocean rounded-full font-medium hover:bg-ocean/20">
+              ⚙️ 設定預算
+            </button>
+          </div>
         </div>
         <div>
           <div className="flex justify-between text-xs mb-1">

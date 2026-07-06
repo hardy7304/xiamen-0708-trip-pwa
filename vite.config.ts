@@ -8,6 +8,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
+      workbox: {
+        runtimeCaching: [
+          {
+            // Never cache API calls — always go to network
+            urlPattern: /\/api\/.*/,
+            handler: 'NetworkOnly',
+          },
+        ],
+      },
       manifest: {
         name: '廈門 0708 小三通行程',
         short_name: 'Xiamen0708',

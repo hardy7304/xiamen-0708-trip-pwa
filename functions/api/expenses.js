@@ -18,6 +18,7 @@ export async function onRequest(context) {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, x-trip-pin',
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
   };
 
   if (request.method === 'OPTIONS') {
