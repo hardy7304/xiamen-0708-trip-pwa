@@ -111,6 +111,25 @@ export function useBudget(settings?: BudgetSettings) {
     });
   }, [getTotalByCategory, exchangeRate, settings]);
 
+  // CNY cash spent: independent of settled status — cash is spent regardless
+  const cnyCashSpent = useMemo(() => {
+    return expenses.reduce((sum, e) => {
+      if (e.currency === 'CNY' && e.paymentMethod === 'cash_cny') {
+        return round(sum + e.amount);
+      }
+      if (e.paymentMethod === 'cash_cny' && e.currency !== 'CNY') {
+        console.warn('[useBudget] cash_cny payment with non-CNY currency', { id: e.id, currency: e.currency, amount: e.amount });
+      }
+      return sum;
+    }, 0);
+  }, [expenses]);
+
+  const initialCnyCash = useMemo(() => {
+    return settings ? settings.total.RMB : budgetCategories.reduce((s, c) => s + c.cnyMax, 0);
+  }, [settings]);
+
+  const cashCnyRemaining = round(initialCnyCash - cnyCashSpent);
+
   // Settlement: per-person balance using splitDetails
   const settlement = useMemo((): SettlementSummary => {
     const persons = ['me', 'yiting'] as const;
@@ -118,8 +137,6 @@ export function useBudget(settings?: BudgetSettings) {
     const owed: Record<string, { cny: number; twd: number }> = {};
     const personal: Record<string, { cny: number; twd: number }> = {};
     const shared: Record<string, { cny: number; twd: number }> = {};
-    let cnyCashSpent = 0;
-    let initialCnyCash = settings ? settings.total.RMB : budgetCategories.reduce((s, c) => s + c.cnyMax, 0);
 
     persons.forEach(p => {
       paid[p] = { cny: 0, twd: 0 };
@@ -155,16 +172,7 @@ export function useBudget(settings?: BudgetSettings) {
           if (shared[person]) shared[person][cur] = round(shared[person][cur] + share);
         });
       }
-
-      // CNY cash spending: only count CNY currency + cash_cny payment
-      if (e.paymentMethod === 'cash_cny' && e.currency === 'CNY') {
-        cnyCashSpent = round(cnyCashSpent + amt);
-      } else if (e.paymentMethod === 'cash_cny' && e.currency !== 'CNY') {
-        console.warn('[useBudget] cash_cny payment with non-CNY currency', { id: e.id, currency: e.currency, amount: e.amount });
-      }
     });
-
-    const cashCnyRemaining = round(initialCnyCash - cnyCashSpent);
 
     const balances: Record<string, { cny: number; twd: number }> = {};
     persons.forEach(p => {
