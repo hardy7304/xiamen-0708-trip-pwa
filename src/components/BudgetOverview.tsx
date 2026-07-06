@@ -27,7 +27,7 @@ function fmtAmount(n: number): string {
 const PERSON_NAMES: Record<string, string> = { me: '嘉豪', yiting: '翊婷' };
 
 export default function BudgetOverview() {
-  const { settings, updateTotal, updateCategory, resetToDefaults } = useBudgetSettings();
+  const { settings, updateTotal, updateCategory, updateInitialCnyCash, resetToDefaults } = useBudgetSettings();
   const { budgets, totals, budgetMax, exchangeRate, setExchangeRate, settlement } = useBudget(settings);
   const { expenses, addExpense, editExpense, removeExpense, pullFromKV } = useExpenses();
   const { settlements, addSettlement, removeSettlement } = useSettlements();
@@ -53,6 +53,7 @@ export default function BudgetOverview() {
   // local copies for editing
   const [editTotalTWD, setEditTotalTWD] = useState(settings.total.TWD);
   const [editTotalRMB, setEditTotalRMB] = useState(settings.total.RMB);
+  const [editInitialCnyCash2, setEditInitialCnyCash2] = useState(settings.initialCnyCash);
   const [editCategories, setEditCategories] = useState(settings.categories);
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function BudgetOverview() {
   useEffect(() => {
     setEditTotalTWD(settings.total.TWD);
     setEditTotalRMB(settings.total.RMB);
+    setEditInitialCnyCash2(settings.initialCnyCash);
     setEditCategories(settings.categories);
   }, [settings]);
 
@@ -222,6 +224,12 @@ export default function BudgetOverview() {
                   <input type="number" value={editTotalRMB || ''} onChange={e => setEditTotalRMB(parseFloat(e.target.value) || 0)}
                     className="w-full text-sm bg-cream rounded-lg px-3 py-2 border border-sand" />
                 </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-warm-gray block mb-0.5">初始人民幣現金</label>
+                <input type="number" value={editInitialCnyCash2 || ''} onChange={e => { setEditInitialCnyCash2(parseFloat(e.target.value) || 0); updateInitialCnyCash(parseFloat(e.target.value) || 0); }}
+                  className="w-full text-sm bg-cream rounded-lg px-3 py-2 border border-sand" />
+                <p className="text-[10px] text-warm-gray/60 mt-0.5">人民幣總預算與身上現金可不同。</p>
               </div>
             </div>
 

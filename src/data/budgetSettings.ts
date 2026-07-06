@@ -17,14 +17,17 @@ export interface BudgetSettings {
     RMB: number;
   };
   categories: BudgetCategorySetting[];
+  updatedAt: number;
+  initialCnyCash: number;
 }
 
 /** Build default settings from the hardcoded budgetCategories map */
 export function defaultBudgetSettings(categories: BudgetCategory[]): BudgetSettings {
+  const rmbTotal = categories.reduce((s, c) => s + c.cnyMax, 0);
   return {
     total: {
       TWD: categories.reduce((s, c) => s + c.twdMax, 0),
-      RMB: categories.reduce((s, c) => s + c.cnyMax, 0),
+      RMB: rmbTotal,
     },
     categories: categories.map(c => ({
       id: c.key,
@@ -34,5 +37,7 @@ export function defaultBudgetSettings(categories: BudgetCategory[]): BudgetSetti
       budget: c.cnyMax > 0 ? c.cnyMax : c.twdMax,
       enabled: true,
     })),
+    updatedAt: Date.now(),
+    initialCnyCash: rmbTotal,
   };
 }

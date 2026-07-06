@@ -125,7 +125,8 @@ export function useBudget(settings?: BudgetSettings) {
   }, [expenses]);
 
   const initialCnyCash = useMemo(() => {
-    return settings ? settings.total.RMB : budgetCategories.reduce((s, c) => s + c.cnyMax, 0);
+    if (settings) return settings.initialCnyCash ?? settings.total.RMB;
+    return budgetCategories.reduce((s, c) => s + c.cnyMax, 0);
   }, [settings]);
 
   const cashCnyRemaining = round(initialCnyCash - cnyCashSpent);
