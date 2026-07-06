@@ -1,24 +1,8 @@
 import type { TimelineItem as TimelineItemType } from '../data/trip';
+import MapActions from './MapActions';
 
 interface TimelineProps {
   items: TimelineItemType[];
-}
-
-function TinyMapButton({ links }: { links: { amap?: string; google?: string } }) {
-  return (
-    <span className="inline-flex gap-0.5 ml-1 align-middle">
-      {links.amap && (
-        <a href={links.amap} target="_blank" rel="noopener noreferrer"
-          className="text-ocean hover:text-ocean-light text-[10px] px-0.5" title="高德地圖"
-          onClick={(e) => e.stopPropagation()}>🗺️</a>
-      )}
-      {links.google && (
-        <a href={links.google} target="_blank" rel="noopener noreferrer"
-          className="text-gold hover:text-gold-light text-[10px] px-0.5" title="Google Maps"
-          onClick={(e) => e.stopPropagation()}>📍</a>
-      )}
-    </span>
-  );
 }
 
 export default function Timeline({ items }: TimelineProps) {
@@ -35,11 +19,19 @@ export default function Timeline({ items }: TimelineProps) {
             item.highlight ? 'text-ocean font-semibold' : 'text-gold'
           }`}>
             {item.time}
-            {item.mapLinks && <TinyMapButton links={item.mapLinks} />}
+            {item.mapLinks && (
+              <span className="inline-flex gap-0.5 ml-1 align-middle">
+                <MapActions name={item.label} compact />
+              </span>
+            )}
           </p>
           <p className={`text-sm ${item.highlight ? 'text-navy font-medium' : 'text-warm-gray'}`}>
             {item.label}
-            {!item.time && item.mapLinks && <TinyMapButton links={item.mapLinks} />}
+            {!item.time && item.mapLinks && (
+              <span className="inline-flex gap-0.5 ml-1 align-middle">
+                <MapActions name={item.label} compact />
+              </span>
+            )}
           </p>
           {item.detail && (
             <p className="text-xs text-warm-gray/70 mt-0.5">{item.detail}</p>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { MassagePlan as MassagePlanType } from '../data/trip';
+import MapActions from './MapActions';
 
 interface MassagePlanProps {
   plan: MassagePlanType;
@@ -18,23 +19,10 @@ export default function MassagePlan({ plan }: MassagePlanProps) {
         </div>
       </div>
 
-      {/* Map button */}
-      {plan.mapLinks && (
-        <div className="flex gap-2 mb-4">
-          {plan.mapLinks.amap && (
-            <a href={plan.mapLinks.amap} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs px-4 py-2.5 rounded-full bg-ocean/10 text-ocean font-semibold hover:bg-ocean/20 transition-colors">
-              🗺️ 高德地圖開啟
-            </a>
-          )}
-          {plan.mapLinks.google && (
-            <a href={plan.mapLinks.google} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs px-4 py-2.5 rounded-full bg-gold-light/40 text-gold font-semibold hover:bg-gold-light/60 transition-colors">
-              📍 Google Maps
-            </a>
-          )}
-        </div>
-      )}
+      {/* Map actions */}
+      <div className="mb-4">
+        <MapActions name={plan.name} address={plan.location} />
+      </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-cream rounded-xl p-3 text-center">

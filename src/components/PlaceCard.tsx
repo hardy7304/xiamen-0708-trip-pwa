@@ -1,4 +1,5 @@
 import type { Place } from '../data/trip';
+import MapActions from './MapActions';
 
 interface PlaceCardProps {
   place: Place;
@@ -28,23 +29,8 @@ export default function PlaceCard({ place }: PlaceCardProps) {
             <span>💡</span>
             {place.tips}
           </p>
-          {/* Map links */}
-          {place.mapLinks && (
-            <div className="flex gap-1.5 mt-1">
-              {place.mapLinks.amap && (
-                <a href={place.mapLinks.amap} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-full bg-ocean/10 text-ocean font-medium hover:bg-ocean/20 transition-colors">
-                  🗺️ 高德導航
-                </a>
-              )}
-              {place.mapLinks.google && (
-                <a href={place.mapLinks.google} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-full bg-gold-light/40 text-gold font-medium hover:bg-gold-light/60 transition-colors">
-                  📍 Google Maps
-                </a>
-              )}
-            </div>
-          )}
+          {/* Map actions */}
+          <MapActions name={place.name} />
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Stay } from '../data/trip';
-import { geoAmap, geoGoogle } from '../data/trip';
+import MapActions from './MapActions';
 
 interface StayCardProps {
   stay: Stay;
@@ -16,13 +16,6 @@ export default function StayCard({ stay, hotelName, onHotelNameChange }: StayCar
   const displayStatus = hotelName ? 'confirmed-by-user' : stay.status;
   const isPending = displayStatus === 'pending';
   const isUserConfirmed = displayStatus === 'confirmed-by-user';
-
-  const userMapLinks = (hotelName && stay.location === 'xiamen')
-    ? { amap: geoAmap(hotelName) }
-    : (hotelName && stay.location === 'kinmen')
-      ? { google: geoGoogle(hotelName) }
-      : undefined;
-  const activeMapLinks = userMapLinks || stay.mapLinks;
 
   const handleSave = () => {
     onHotelNameChange(draft.trim());
@@ -54,45 +47,16 @@ export default function StayCard({ stay, hotelName, onHotelNameChange }: StayCar
       </div>
       <p className="text-xs text-warm-gray mb-1">{stay.roomType}</p>
 
+      {/* Map actions */}
+      <div className="mt-2 mb-3">
+        <MapActions name={displayName} address={stay.address} />
+      </div>
+
       {/* Pending suggestions */}
       {isPending && stay.suggestion && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-3 mb-3">
           <p className="text-xs text-amber-800 font-medium mb-1">💡 建議住宿</p>
           <p className="text-xs text-amber-700">{stay.suggestion}</p>
-          {activeMapLinks && (
-            <div className="mt-2 flex gap-1.5">
-              {activeMapLinks.amap && (
-                <a href={activeMapLinks.amap} target="_blank" rel="noopener noreferrer"
-                  className="text-xs px-2.5 py-1 rounded-full bg-ocean/10 text-ocean font-medium hover:bg-ocean/20">
-                  🗺️ 高德查看
-                </a>
-              )}
-              {activeMapLinks.google && (
-                <a href={activeMapLinks.google} target="_blank" rel="noopener noreferrer"
-                  className="text-xs px-2.5 py-1 rounded-full bg-gold-light/40 text-gold font-medium hover:bg-gold-light/60">
-                  📍 Google 查看
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* User-confirmed hotel */}
-      {isUserConfirmed && activeMapLinks && (
-        <div className="flex gap-1.5 mt-2 mb-3">
-          {activeMapLinks.amap && (
-            <a href={activeMapLinks.amap} target="_blank" rel="noopener noreferrer"
-              className="text-xs px-2.5 py-1 rounded-full bg-ocean/10 text-ocean font-medium hover:bg-ocean/20">
-              🗺️ 高德地圖
-            </a>
-          )}
-          {activeMapLinks.google && (
-            <a href={activeMapLinks.google} target="_blank" rel="noopener noreferrer"
-              className="text-xs px-2.5 py-1 rounded-full bg-gold-light/40 text-gold font-medium hover:bg-gold-light/60">
-              📍 Google 地圖
-            </a>
-          )}
         </div>
       )}
 
