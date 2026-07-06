@@ -375,9 +375,21 @@ export default function BudgetOverview() {
             )}
           </div>
         </div>
-        <div className="bg-soft-white rounded-lg p-3 text-center">
-          <p className="text-xs text-warm-gray">💰 人民幣現金剩餘</p>
-          <p className="text-lg font-bold text-coral">¥ {settlement.cashCnyRemaining.toLocaleString()}</p>
+        <div className="bg-soft-white rounded-lg p-3 space-y-1.5">
+          <p className="text-xs font-semibold text-navy">💰 人民幣現金錢包</p>
+          <div className="flex justify-between text-xs text-warm-gray">
+            <span>初始現金</span>
+            <span className="text-warm-gray font-medium">¥ {settlement.initialCnyCash.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-xs text-warm-gray">
+            <span>已用現金</span>
+            <span className="text-coral font-medium">-¥ {settlement.cnyCashSpent.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-xs font-semibold pt-0.5 border-t border-sand/30">
+            <span>預估剩餘</span>
+            <span className={`text-base ${settlement.cashCnyRemaining < 0 ? 'text-coral' : 'text-ocean'}`}>¥ {settlement.cashCnyRemaining.toLocaleString()}</span>
+          </div>
+          <p className="text-[10px] text-warm-gray/60 mt-1">只扣除幣別為人民幣且支付方式為人民幣現金的支出。不包含微信、信用卡或支付寶。</p>
         </div>
       </div>
 

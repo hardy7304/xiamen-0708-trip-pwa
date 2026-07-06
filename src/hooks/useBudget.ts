@@ -11,6 +11,8 @@ export interface SettlementSummary {
   personal: Record<string, { cny: number; twd: number }>;
   shared: Record<string, { cny: number; twd: number }>;
   recommendations: { from: string; to: string; currency: 'CNY' | 'TWD'; amount: number }[];
+  initialCnyCash: number;
+  cnyCashSpent: number;
   cashCnyRemaining: number;
 }
 
@@ -85,7 +87,6 @@ export function useBudget(settings?: BudgetSettings) {
           };
         });
     }
-    // fallback to hardcoded
     return budgetCategories.map(cat => {
       const spent = getTotalByCategory(cat.key);
       const isRmb = cat.cnyMax > 0;
@@ -117,7 +118,8 @@ export function useBudget(settings?: BudgetSettings) {
     const owed: Record<string, { cny: number; twd: number }> = {};
     const personal: Record<string, { cny: number; twd: number }> = {};
     const shared: Record<string, { cny: number; twd: number }> = {};
-    let cashCnyRemaining = 0;
+    let cnyCashSpent = 0;
+    let initialCnyCash = settings ? settings.total.RMB : budgetCategories.reduce((s, c) => s + c.cnyMax, 0);
 
     persons.forEach(p => {
       paid[p] = { cny: 0, twd: 0 };
@@ -154,10 +156,15 @@ export function useBudget(settings?: BudgetSettings) {
         });
       }
 
-      if (e.paidBy === 'me' && e.paymentMethod === 'cash_cny' && isCny) {
-        cashCnyRemaining = round(cashCnyRemaining + amt);
+      // CNY cash spending: only count CNY currency + cash_cny payment
+      if (e.paymentMethod === 'cash_cny' && e.currency === 'CNY') {
+        cnyCashSpent = round(cnyCashSpent + amt);
+      } else if (e.paymentMethod === 'cash_cny' && e.currency !== 'CNY') {
+        console.warn('[useBudget] cash_cny payment with non-CNY currency', { id: e.id, currency: e.currency, amount: e.amount });
       }
     });
+
+    const cashCnyRemaining = round(initialCnyCash - cnyCashSpent);
 
     const balances: Record<string, { cny: number; twd: number }> = {};
     persons.forEach(p => {
@@ -192,8 +199,8 @@ export function useBudget(settings?: BudgetSettings) {
       }
     });
 
-    return { balances, paid, owed, personal, shared, recommendations, cashCnyRemaining };
-  }, [expenses]);
+    return { balances, paid, owed, personal, shared, recommendations, initialCnyCash, cnyCashSpent, cashCnyRemaining };
+  }, [expenses, settings]);
 
   return {
     budgets: categoryDetails,
