@@ -19,7 +19,7 @@ export const budgetCategories: BudgetCategory[] = [
   { key: 'emergency', label: '緊急備用金', icon: '🆘', twdMin: 3000, twdMax: 5000, cnyMin: 1000, cnyMax: 2000 },
 ];
 
-export const DEFAULT_EXCHANGE_RATE = 4.4;
+export const DEFAULT_EXCHANGE_RATE = 4.35;
 
 export const PAYERS = [
   { key: 'me', label: '嘉豪' },

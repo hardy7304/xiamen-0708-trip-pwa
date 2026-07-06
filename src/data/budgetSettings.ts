@@ -1,4 +1,4 @@
-import type { BudgetCategory } from './budget';
+import { DEFAULT_EXCHANGE_RATE, type BudgetCategory } from './budget';
 
 export type BudgetCurrency = 'TWD' | 'RMB';
 
@@ -39,7 +39,7 @@ export function defaultBudgetSettings(categories: BudgetCategory[]): BudgetSetti
       enabled: true,
     })),
     initialCnyCash: rmbTotal,
-    exchangeRate: 4.35,
+    exchangeRate: DEFAULT_EXCHANGE_RATE,
     updatedAt: 0, // 0 ensures remote always wins on first pull
   };
 }
